@@ -1329,10 +1329,12 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
   } else {
     // Metodo 2 e 3: giornate con checkbox
     const chks = [...document.querySelectorAll('.paga-chk:checked')];
-    let candidati;
     if (chks.length) {
       const ids = new Set(chks.map(c => c.dataset.id));
-      candidati = all.filter(r => ids.has(r.id));
+      for (const r of all.filter(r => ids.has(r.id))) {
+        r.pagato  = true;
+        r.importo = calcolaImportoGiornata(recMin(r));
+      }
     } else {
       const nonPagate = cfg.metodo === 3
         ? all.filter(r => !r.pagato).sort((a, b) => a.entrata_ts - b.entrata_ts)
