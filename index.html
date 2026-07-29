@@ -184,29 +184,61 @@ nav button.active {
   font-weight: 300;
 }
 
-.pagato-box {
-  text-align: center;
-  border: 1px solid var(--border);
-  padding: 20px 16px 18px;
+/* splash */
+#splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: splashFade 0.45s ease 0.95s forwards;
+}
+#splash-heart {
+  width: 80px;
+  height: 80px;
+  fill: var(--text);
+  animation: heartGrow 0.95s cubic-bezier(0.2, 0, 0.6, 1) forwards;
+}
+@keyframes heartGrow {
+  0%   { transform: scale(0.1); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: scale(55); }
+}
+@keyframes splashFade {
+  to { opacity: 0; pointer-events: none; }
+}
+
+/* totali pagato/non pagato */
+.totali-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin-bottom: 28px;
 }
-.pagato-lbl {
+.totale-box {
+  text-align: center;
+  border: 1px solid var(--border);
+  padding: 18px 10px 16px;
+}
+.totale-lbl {
   font-size: 10px;
   color: var(--soft);
   letter-spacing: 1px;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
-.pagato-ore {
-  font-size: 48px;
+.totale-ore {
+  font-size: 36px;
   font-weight: 200;
   line-height: 1;
   letter-spacing: -1px;
 }
-.pagato-eur {
-  font-size: 14px;
+.totale-eur {
+  font-size: 13px;
   color: var(--soft);
-  margin-top: 8px;
+  margin-top: 7px;
   letter-spacing: 1px;
 }
 
@@ -419,6 +451,12 @@ nav button.active {
 </head>
 <body>
 
+<div id="splash">
+  <svg id="splash-heart" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/>
+  </svg>
+</div>
+
 <header>
   <div class="hdr-title">Presenze</div>
   <div class="hdr-msg" id="hdr-msg">Buon lavoro amore mio!🤍</div>
@@ -453,10 +491,17 @@ nav button.active {
     </div>
   </div>
 
-  <div class="pagato-box">
-    <div class="pagato-lbl">Totale pagato</div>
-    <div class="pagato-ore" id="s-pag-ore">—</div>
-    <div class="pagato-eur" id="s-pag-eur">—</div>
+  <div class="totali-grid">
+    <div class="totale-box">
+      <div class="totale-lbl">Pagato</div>
+      <div class="totale-ore" id="s-pag-ore">—</div>
+      <div class="totale-eur" id="s-pag-eur">—</div>
+    </div>
+    <div class="totale-box">
+      <div class="totale-lbl">Non pagato</div>
+      <div class="totale-ore" id="s-nonpag-ore">—</div>
+      <div class="totale-eur" id="s-nonpag-eur"></div>
+    </div>
   </div>
 
   <div class="cal-nav">
@@ -660,11 +705,15 @@ function refreshStats() {
 
   document.getElementById('s-mese').textContent = fmtH(sum(r => r.data.startsWith(ym)));
 
-  const pagati = all.filter(r => r.pagato && r.uscita_ts);
-  const pagMin = pagati.reduce((a, r) => a + recMin(r), 0);
-  const pagEur = pagati.reduce((a, r) => a + (r.importo || 0), 0);
-  document.getElementById('s-pag-ore').textContent = fmtH(pagMin);
-  document.getElementById('s-pag-eur').textContent = pagEur > 0 ? '€ ' + pagEur.toFixed(2) : '—';
+  const pagati    = all.filter(r =>  r.pagato && r.uscita_ts);
+  const nonPagati = all.filter(r => !r.pagato && r.uscita_ts);
+  const pagMin    = pagati.reduce((a, r) => a + recMin(r), 0);
+  const pagEur    = pagati.reduce((a, r) => a + (r.importo || 0), 0);
+  const nonPagMin = nonPagati.reduce((a, r) => a + recMin(r), 0);
+  document.getElementById('s-pag-ore').textContent    = fmtH(pagMin);
+  document.getElementById('s-pag-eur').textContent    = pagEur > 0 ? '\u20ac ' + pagEur.toFixed(2) : '\u2014';
+  document.getElementById('s-nonpag-ore').textContent = fmtH(nonPagMin);
+
 }
 
 /* ── REGISTRO: calendario ───────────────────────── */
@@ -861,6 +910,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
 refreshHome();
 refreshStats();
 refreshCal();
+setTimeout(() => document.getElementById('splash').remove(), 1450);
 </script>
 </body>
 </html>
