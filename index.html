@@ -219,6 +219,7 @@ nav button.active {
   gap: 8px;
   margin-bottom: 28px;
 }
+.totale-full { grid-column: span 2; }
 .totale-box {
   text-align: center;
   border: 1px solid var(--border);
@@ -574,15 +575,9 @@ nav button.active {
       <div class="totale-ore" id="s-pag-N-ore">—</div>
       <div class="totale-eur" id="s-pag-N-eur">—</div>
     </div>
-    <div class="totale-box">
-      <div class="totale-lbl">Da pagare · Sito</div>
-      <div class="totale-ore" id="s-nonpag-B-ore">—</div>
-      <div class="totale-eur" id="s-nonpag-B-eur"></div>
-    </div>
-    <div class="totale-box">
-      <div class="totale-lbl">Da pagare · Sede</div>
-      <div class="totale-ore" id="s-nonpag-N-ore">—</div>
-      <div class="totale-eur" id="s-nonpag-N-eur"></div>
+    <div class="totale-box totale-full">
+      <div class="totale-lbl">Da pagare</div>
+      <div class="totale-ore" id="s-nonpag-ore">—</div>
     </div>
   </div>
 
@@ -831,8 +826,9 @@ function refreshStats() {
     const npMin  = nonPag.reduce((a, r) => a + recMin(r), 0);
     document.getElementById('s-pag-'    + k + '-ore').textContent = fmtH(pagMin);
     document.getElementById('s-pag-'    + k + '-eur').textContent = pagEur > 0 ? '\u20ac ' + pagEur.toFixed(2) : '\u2014';
-    document.getElementById('s-nonpag-' + k + '-ore').textContent = fmtH(npMin);
   });
+  const npTot = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r), 0);
+  document.getElementById('s-nonpag-ore').textContent = fmtH(npTot);
 
 }
 
