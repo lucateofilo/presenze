@@ -285,7 +285,8 @@ nav button.active {
 .totale-box {
   text-align: center;
   border: 1px solid var(--border);
-  padding: 16px 8px 0;
+  padding: 16px 8px 18px;
+  position: relative;
 }
 .totale-lbl {
   font-size: 9px;
@@ -307,9 +308,9 @@ nav button.active {
   letter-spacing: 0.5px;
 }
 .totale-bar-wrap {
-  width: 100%;
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
   height: 4px;
-  margin-top: 14px;
   background: var(--border);
 }
 .totale-bar { height: 100%; }
