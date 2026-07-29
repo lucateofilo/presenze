@@ -577,8 +577,22 @@ nav button.active {
   z-index: 500;
   animation: toastIn 0.2s ease, toastOut 0.3s ease 2.7s forwards;
 }
+.toast.ok  { border-color: #2a2a2a; color: var(--text); }
+.toast.err { border-color: #5c1f1f; color: #ff6b6b; background: #1a0a0a; }
 @keyframes toastIn  { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
 @keyframes toastOut { to   { opacity: 0; } }
+
+/* confirm modal */
+#ov-confirm .sheet { padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
+#ov-confirm p { font-size: 15px; color: var(--text); margin-bottom: 20px; line-height: 1.5; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btns button { flex: 1; padding: 14px; border: 1px solid var(--border); background: none; color: var(--text); font-size: 14px; cursor: pointer; touch-action: manipulation; }
+.confirm-btns button:first-child { color: var(--soft); }
+.confirm-btns button:last-child  { border-color: var(--text); }
+
+/* pulse sul btn-main */
+@keyframes btnPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.15); } 50% { box-shadow: 0 0 0 14px rgba(255,255,255,0); } }
+#btn-main.pulsed { animation: btnPulse 0.5s ease; }
 
 
 /* aggiungi timbratura */
@@ -820,14 +834,6 @@ function fmtDataIt(ds) {
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-function showToast(html) {
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.innerHTML = html;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3300);
-}
-
 let _undoRec = null, _undoTimer = null;
 function undoDel() {
   if (!_undoRec) return;
@@ -925,6 +931,7 @@ document.getElementById('btn-salva-cfg').addEventListener('click', () => {
   });
   refreshStats();
   refreshCal();
+  showToast('Impostazioni salvate', 'ok');
 });
 
 /* ── HOME: main button ──────────────────────────── */
@@ -946,10 +953,14 @@ function refreshHome() {
 }
 
 btnMain.addEventListener('click', () => {
+  btnMain.classList.remove('pulsed');
+  void btnMain.offsetWidth;
+  btnMain.classList.add('pulsed');
   const s = getStato();
   if (!s) {
     saveStato({ ts: Date.now(), data: todayStr(), sito: '' });
     hdrMsg.textContent = 'Buon lavoro amore mio!🤍';
+    showToast('Timbratura avviata', 'ok');
   } else {
     const all = getRecs();
     all.push({
@@ -969,6 +980,7 @@ btnMain.addEventListener('click', () => {
     hdrMsg.textContent = 'Sei stata bravissima, come al solito!🤍';
     refreshStats();
     refreshCal();
+    showToast('Timbratura salvata', 'ok');
   }
   refreshHome();
 });
@@ -1227,7 +1239,7 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
   if (cfg.metodo === 1) {
     const oreIn   = parseFloat(document.getElementById('p-ore').value) || 0;
     const importo = parseFloat(document.getElementById('p-imp').value) || 0;
-    if (!oreIn) { alert('Inserisci le ore pagate.'); return; }
+    if (!oreIn) { showToast('Inserisci le ore pagate', 'err'); return; }
     let minRimasti = Math.round(oreIn * 60);
     const candidati = all.filter(r => !r.pagato && r.uscita_ts).sort((a, b) => a.entrata_ts - b.entrata_ts);
     const minTot = Math.min(minRimasti, candidati.reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0));
@@ -1252,25 +1264,26 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
       // nessuna selezione: tutte dal più vecchio
       candidati = all.filter(r => !r.pagato && r.uscita_ts).sort((a, b) => a.entrata_ts - b.entrata_ts);
       if (!candidati.length) { closeModal('ov-paga'); return; }
-      if (!confirm('Segna come pagate tutte le ' + candidati.length + ' giornate non pagate?')) return;
+      showConfirm('Segna come pagate tutte le ' + candidati.length + ' giornate non pagate?', () => {
+        for (const r of candidati) {
+          r.pagato  = true;
+          r.importo = calcolaImportoGiornata(recMin(r));
+        }
+        saveRecs(all);
+        closeModal('ov-paga');
+        refreshStats();
+        refreshCal();
+        showToast(candidati.length + ' giornate segnate come pagate', 'ok');
+      });
+      return;
     }
-    for (const r of candidati) {
-      r.pagato  = true;
-      r.importo = calcolaImportoGiornata(recMin(r));
-    }
-    saveRecs(all);
-    closeModal('ov-paga');
-    refreshStats();
-    refreshCal();
-    showToast(candidati.length + ' giornate segnate come pagate');
-    return;
   }
 
   saveRecs(all);
   closeModal('ov-paga');
   refreshStats();
   refreshCal();
-  showToast('Pagamento applicato');
+  showToast('Pagamento applicato', 'ok');
 });
 
 
@@ -1328,6 +1341,7 @@ function openDiaryDay(ds) {
     saveDiary(diary);
     closeModal('ov-diary-day');
     refreshDiaryList();
+    showToast(val.trim() ? 'Nota salvata' : 'Nota eliminata', 'ok');
   };
   openModal('ov-diary-day');
 }
@@ -1337,7 +1351,7 @@ function withXLSX(cb) {
   const s = document.createElement('script');
   s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
   s.onload = cb;
-  s.onerror = () => alert('Impossibile caricare la libreria Excel. Controlla la connessione.');
+  s.onerror = () => showToast('Impossibile caricare la libreria Excel', 'err');
   document.head.appendChild(s);
 }
 
@@ -1378,7 +1392,7 @@ function exportAll() {
   XLSX.writeFile(wb, 'backup_' + todayStr() + '.xlsx');
   localStorage.setItem(DEXPORT_KEY, Date.now().toString());
   checkDiaryBanner();
-  showToast('Backup esportato');
+  showToast('Backup esportato', 'ok');
   });
 }
 
@@ -1404,7 +1418,7 @@ function addTimbratura(ds) {
 function confirmTimbratura(ds) {
   const entrata = document.getElementById('tf-in').value;
   const uscita  = document.getElementById('tf-out').value;
-  if (!entrata) { alert('Inserisci almeno l\'orario di entrata.'); return; }
+  if (!entrata) { showToast('Inserisci almeno l\'orario di entrata', 'err'); return; }
   const all = getRecs();
   all.push({
     id: uid(), data: ds,
@@ -1420,11 +1434,38 @@ function confirmTimbratura(ds) {
 }
 
 
+/* ── showToast + showConfirm ────────────────────── */
+function showToast(html, type) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.innerHTML = html;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3300);
+}
+function showConfirm(msg, onYes) {
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-yes').onclick = () => { closeModal('ov-confirm'); onYes(); };
+  document.getElementById('confirm-no').onclick  = () => closeModal('ov-confirm');
+  openModal('ov-confirm');
+}
+
 /* ── Init ───────────────────────────────────────── */
 refreshHome();
 refreshStats();
 refreshCal();
 setTimeout(() => document.getElementById('splash').remove(), 2500);
 </script>
+
+<div class="overlay" id="ov-confirm">
+  <div class="sheet">
+    <div class="sheet-top"><h2>Conferma</h2></div>
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button id="confirm-no">Annulla</button>
+      <button id="confirm-yes">Conferma</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
