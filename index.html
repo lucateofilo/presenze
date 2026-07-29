@@ -1147,7 +1147,7 @@ function refreshCal() {
     const ds      = prefix + '-' + String(d).padStart(2, '0');
     const min     = hMap[ds] || 0;
     const minPag  = hPagMap[ds] || 0;
-    const hasData = min > 0 || (cfg3 && presMap[ds]);
+    const hasData = min > 0 || presMap[ds];
     const cls     = ['cal-cell', 'cal-day', hasData && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
     let bar = '';
     if (min > 0) {
@@ -1156,7 +1156,7 @@ function refreshCal() {
           + '<div class="cal-bar-g" style="width:' + (pct * 100).toFixed(1) + '%"></div>'
           + '<div class="cal-bar-r" style="width:' + ((1 - pct) * 100).toFixed(1) + '%"></div>'
           + '</div>';
-    } else if (cfg3 && presMap[ds]) {
+    } else if (presMap[ds]) {
       bar = '<div class="cal-bar"><div class="cal-bar-r" style="width:100%"></div></div>';
     }
     const special = ds.slice(5) === '05-11' ? '🌷' : ds.slice(5) === '06-23' ? '🪨🤍' : ds.slice(8) === '23' ? '🤍' : '';
@@ -1164,7 +1164,7 @@ function refreshCal() {
     let oreLabel = '';
     if (min > 0) {
       oreLabel = '<span class="ch">' + fmtH(min) + (cnt > 1 ? ' <span style="color:var(--soft);font-size:9px">×' + cnt + '</span>' : '') + '</span>';
-    } else if (cfg3 && presMap[ds]) {
+    } else if (presMap[ds]) {
       oreLabel = '<span class="ch" style="font-size:10px;color:var(--soft)">P</span>';
     }
     html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDay(\'' + ds + '\')">'
