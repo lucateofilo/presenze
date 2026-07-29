@@ -45,16 +45,16 @@ header {
   text-align: center;
 }
 .hdr-title {
-  font-size: 12px;
-  letter-spacing: 4px;
+  font-size: 15px;
+  letter-spacing: 5px;
   color: var(--muted);
   text-transform: uppercase;
 }
 .hdr-msg {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--soft);
-  margin-top: 6px;
-  min-height: 18px;
+  margin-top: 8px;
+  min-height: 20px;
   transition: color 0.4s;
 }
 
@@ -73,16 +73,16 @@ nav {
 }
 nav button {
   flex: 1;
-  padding: 15px;
+  padding: 18px;
   background: none;
   border: none;
   color: var(--soft);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 3px;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.2s;
-  min-height: 50px;
+  min-height: 58px;
 }
 nav button.active {
   color: var(--text);
@@ -91,15 +91,29 @@ nav button.active {
 }
 
 /* ── VIEWS ── */
-.view { display: none; padding: 0 20px calc(80px + env(safe-area-inset-bottom)); }
+.view { display: none; padding: 0 20px calc(90px + env(safe-area-inset-bottom)); }
 .view.active { display: block; }
 
 /* ── HOME ── */
+#v-home {
+  display: none;
+  flex-direction: column;
+  min-height: calc(100vh - 120px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+#v-home.active { display: flex; }
+
 .home-center {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 52px;
+  justify-content: center;
+}
+
+.home-bottom {
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: center;
 }
 
 #btn-main {
@@ -131,8 +145,8 @@ nav button.active {
 
 #btn-paga {
   display: block;
-  margin: 44px auto 0;
-  padding: 12px 44px;
+  margin: 0;
+  padding: 14px 48px;
   background: none;
   border: 1px solid var(--border);
   color: var(--soft);
@@ -388,11 +402,12 @@ nav button.active {
 <div id="v-home" class="view active">
   <div class="home-center">
     <button id="btn-main">ENTRA</button>
-
     <div class="in-corso-txt" id="in-corso-txt"></div>
   </div>
 
-  <button id="btn-paga">PAGA</button>
+  <div class="home-bottom">
+    <button id="btn-paga">PAGA</button>
+  </div>
 </div>
 
 <!-- ── REGISTRO ── -->
