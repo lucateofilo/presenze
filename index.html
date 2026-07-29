@@ -471,21 +471,6 @@ nav button.active {
 @keyframes toastIn  { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
 @keyframes toastOut { to   { opacity: 0; } }
 
-/* pulsante GPS nell'header */
-.geo-icon {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 6px;
-  line-height: 1;
-}
-.geo-icon.active { color: var(--text); }
 
 /* aggiungi timbratura */
 .btn-add {
@@ -503,25 +488,7 @@ nav button.active {
 }
 .btn-add:hover { border-color: var(--muted); color: var(--text); }
 
-/* geo modal */
-.geo-posto {
-  border: 1px solid var(--border);
-  padding: 14px;
-  margin-bottom: 12px;
-}
-.geo-posto-title {
-  font-size: 10px;
-  color: var(--soft);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-.geo-coords {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 10px;
-  min-height: 16px;
-}
+
 </style>
 </head>
 <body>
@@ -532,9 +499,8 @@ nav button.active {
   </svg>
 </div>
 
-<header style="position:relative;">
+<header>
   <div class="hdr-title">Presenze</div>
-  <button class="geo-icon" id="btn-geo" title="Impostazioni posizione">◎</button>
 </header>
 
 <!-- ── HOME ── -->
@@ -642,41 +608,6 @@ nav button.active {
   </div>
 </div>
 
-<!-- ── MODAL: GPS ── -->
-<div class="overlay" id="ov-geo">
-  <div class="sheet">
-    <div class="sheet-top">
-      <h2>Posizioni GPS</h2>
-      <button class="btn-close" data-close="ov-geo">×</button>
-    </div>
-
-    <div class="geo-posto">
-      <div class="geo-posto-title">SITO</div>
-      <div class="geo-coords" id="geo-coords-B">Non impostato</div>
-      <div class="fg">
-        <label>Raggio (metri)</label>
-        <input type="number" id="geo-r-B" value="150" min="50" max="1000">
-      </div>
-      <button class="btn-cta" onclick="saveGeoPos('B')" style="margin-top:10px;">Usa posizione attuale</button>
-      <button class="btn-del" onclick="clearGeoPos('B')">Rimuovi</button>
-    </div>
-
-    <div class="geo-posto">
-      <div class="geo-posto-title">SEDE</div>
-      <div class="geo-coords" id="geo-coords-N">Non impostato</div>
-      <div class="fg">
-        <label>Raggio (metri)</label>
-        <input type="number" id="geo-r-N" value="150" min="50" max="1000">
-      </div>
-      <button class="btn-cta" onclick="saveGeoPos('N')" style="margin-top:10px;">Usa posizione attuale</button>
-      <button class="btn-del" onclick="clearGeoPos('N')">Rimuovi</button>
-    </div>
-
-    <p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;">
-      La timbratura automatica funziona solo con l'app aperta.
-    </p>
-  </div>
-</div>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
@@ -915,22 +846,14 @@ function renderDayBody(ds) {
   }
 
   const html = list.map((r, i) => {
-    const lbl = sitoLabel(r.sito);
     return '<div class="timb-card">'
-      + '<div class="timb-lbl">Timbratura ' + (i + 1) + (lbl ? ' &nbsp;·&nbsp; ' + lbl : '') + '</div>'
+      + '<div class="timb-lbl">Timbratura ' + (i + 1) + '</div>'
 
       + '<div class="fg"><label>Entrata</label>'
       + '<input type="time" value="' + r.entrata + '" onchange="patchRec(\'' + r.id + '\',\'entrata\',this.value)"></div>'
 
       + '<div class="fg"><label>Uscita</label>'
       + '<input type="time" value="' + (r.uscita || '') + '" onchange="patchRec(\'' + r.id + '\',\'uscita\',this.value)"></div>'
-
-      + '<div class="fg"><label>Sito</label><div class="radio2">'
-      + '<input type="radio" name="ds-' + r.id + '" id="dsB-' + r.id + '" value="B"' + (r.sito === 'B' ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'sito\',\'B\')">'
-      + '<label for="dsB-' + r.id + '">SITO</label>'
-      + '<input type="radio" name="ds-' + r.id + '" id="dsN-' + r.id + '" value="N"' + (r.sito === 'N' ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'sito\',\'N\')">'
-      + '<label for="dsN-' + r.id + '">SEDE</label>'
-      + '</div></div>'
 
       + '<div class="fg"><label>Note</label>'
       + '<textarea onchange="patchRec(\'' + r.id + '\',\'nota\',this.value)">' + (r.nota || '') + '</textarea></div>'
@@ -1061,103 +984,11 @@ function addTimbratura(ds) {
   renderDayBody(ds);
 }
 
-/* ── Toast ───────────────────────────────────────── */
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3100);
-}
-
-/* ── Geo ─────────────────────────────────────────── */
-const GEO_KEY = 'pr_geo';
-function getGeo()     { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); }
-function saveGeo(g)   { localStorage.setItem(GEO_KEY, JSON.stringify(g)); }
-
-function haversine(la1, lo1, la2, lo2) {
-  const R = 6371000, toR = Math.PI / 180;
-  const dLa = (la2 - la1) * toR, dLo = (lo2 - lo1) * toR;
-  const a = Math.sin(dLa/2)**2 + Math.cos(la1*toR) * Math.cos(la2*toR) * Math.sin(dLo/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function renderGeoModal() {
-  const g = getGeo();
-  ['B','N'].forEach(k => {
-    const el = document.getElementById('geo-coords-' + k);
-    const rEl = document.getElementById('geo-r-' + k);
-    if (g[k]) {
-      el.textContent = g[k].lat.toFixed(5) + ', ' + g[k].lng.toFixed(5);
-      rEl.value = g[k].r;
-    } else {
-      el.textContent = 'Non impostato';
-    }
-  });
-}
-
-function saveGeoPos(key) {
-  if (!navigator.geolocation) { alert('GPS non disponibile.'); return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const r = parseInt(document.getElementById('geo-r-' + key).value) || 150;
-    const g = getGeo();
-    g[key] = { lat: pos.coords.latitude, lng: pos.coords.longitude, r };
-    saveGeo(g);
-    renderGeoModal();
-    showToast('Posizione ' + sitoLabel(key) + ' salvata');
-    startGeo();
-  }, () => alert('Impossibile ottenere la posizione.'), { enableHighAccuracy: true });
-}
-
-function clearGeoPos(key) {
-  const g = getGeo(); delete g[key]; saveGeo(g); renderGeoModal();
-}
-
-document.getElementById('btn-geo').addEventListener('click', () => {
-  renderGeoModal(); openModal('ov-geo');
-});
-
-let lastInside = null;
-
-function startGeo() {
-  const g = getGeo();
-  if (!Object.keys(g).length || !navigator.geolocation) return;
-
-  navigator.geolocation.watchPosition(pos => {
-    const { latitude: la, longitude: lo } = pos.coords;
-    const geo = getGeo();
-    let insideKey = null;
-    for (const k of ['B','N']) {
-      if (geo[k] && haversine(la, lo, geo[k].lat, geo[k].lng) <= geo[k].r) { insideKey = k; break; }
-    }
-
-    if (insideKey === lastInside) return;
-    lastInside = insideKey;
-
-    const s = getStato();
-    if (insideKey && !s) {
-      saveStato({ ts: Date.now(), data: todayStr(), sito: insideKey, auto: true });
-      hdrMsg.textContent = 'Buon lavoro amore mio!🤍';
-      refreshHome();
-      showToast('Entrata automatica · ' + sitoLabel(insideKey));
-    } else if (!insideKey && s && s.auto) {
-      const all = getRecs();
-      all.push({ id: uid(), data: s.data, entrata: tsToHM(s.ts), uscita: tsToHM(Date.now()), entrata_ts: s.ts, uscita_ts: Date.now(), sito: s.sito || '', nota: '', pagato: false, importo: 0 });
-      saveRecs(all); saveStato(null);
-      hdrMsg.textContent = 'Sei stata bravissima, come al solito!🤍';
-      refreshHome(); refreshStats(); refreshCal();
-      showToast('Uscita automatica · ' + sitoLabel(s.sito));
-    }
-
-    document.getElementById('btn-geo').classList.toggle('active', !!insideKey);
-  }, null, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
-}
 
 /* ── Init ───────────────────────────────────────── */
 refreshHome();
 refreshStats();
 refreshCal();
-startGeo();
 setTimeout(() => document.getElementById('splash').remove(), 3700);
 </script>
 </body>
