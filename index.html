@@ -184,6 +184,32 @@ nav button.active {
   font-weight: 300;
 }
 
+.pagato-box {
+  text-align: center;
+  border: 1px solid var(--border);
+  padding: 20px 16px 18px;
+  margin-bottom: 28px;
+}
+.pagato-lbl {
+  font-size: 10px;
+  color: var(--soft);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.pagato-ore {
+  font-size: 48px;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.pagato-eur {
+  font-size: 14px;
+  color: var(--soft);
+  margin-top: 8px;
+  letter-spacing: 1px;
+}
+
 .cal-nav {
   display: flex;
   align-items: center;
@@ -427,6 +453,12 @@ nav button.active {
     </div>
   </div>
 
+  <div class="pagato-box">
+    <div class="pagato-lbl">Totale pagato</div>
+    <div class="pagato-ore" id="s-pag-ore">—</div>
+    <div class="pagato-eur" id="s-pag-eur">—</div>
+  </div>
+
   <div class="cal-nav">
     <button id="c-prev">‹</button>
     <span id="c-label"></span>
@@ -627,6 +659,12 @@ function refreshStats() {
   }));
 
   document.getElementById('s-mese').textContent = fmtH(sum(r => r.data.startsWith(ym)));
+
+  const pagati = all.filter(r => r.pagato && r.uscita_ts);
+  const pagMin = pagati.reduce((a, r) => a + recMin(r), 0);
+  const pagEur = pagati.reduce((a, r) => a + (r.importo || 0), 0);
+  document.getElementById('s-pag-ore').textContent = fmtH(pagMin);
+  document.getElementById('s-pag-eur').textContent = pagEur > 0 ? '€ ' + pagEur.toFixed(2) : '—';
 }
 
 /* ── REGISTRO: calendario ───────────────────────── */
