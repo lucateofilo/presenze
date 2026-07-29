@@ -195,13 +195,13 @@ nav button.active {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: splashFade 0.8s ease 2.8s forwards;
+  animation: splashFade 0.8s ease 1.7s forwards;
 }
 #splash-heart {
   width: 80px;
   height: 80px;
   fill: var(--text);
-  animation: heartGrow 2.8s cubic-bezier(0.2, 0, 0.6, 1) reverse forwards;
+  animation: heartGrow 1.7s cubic-bezier(0.2, 0, 0.6, 1) reverse forwards;
 }
 @keyframes heartGrow {
   0%   { transform: scale(0.1); opacity: 0; }
@@ -293,6 +293,7 @@ nav button.active {
   cursor: pointer;
 }
 .cal-cell.has-data:hover { background: #1e1e1e; }
+.cal-cell.cal-day:hover { background: #141414; }
 .cal-cell .cn { font-size: 13px; }
 .cal-cell .ch { font-size: 10px; color: var(--soft); margin-top: 2px; }
 .cal-bar { display: flex; width: 100%; height: 3px; margin-top: 6px; border-radius: 1px; overflow: hidden; }
@@ -571,9 +572,9 @@ nav button.active {
       <label>Metodo di pagamento</label>
       <div class="radio2">
         <input type="radio" name="metodo" id="m-opt1" value="1">
-        <label for="m-opt1">Metodo 1 · Ore</label>
+        <label for="m-opt1">A ore</label>
         <input type="radio" name="metodo" id="m-opt2" value="2">
-        <label for="m-opt2">Metodo 2 · Giornate</label>
+        <label for="m-opt2">A giornata</label>
       </div>
     </div>
 
@@ -652,6 +653,12 @@ function fmtH(min) {
   return m ? h + 'h' + String(m).padStart(2,'0') : h + 'h';
 }
 
+function fmtDataIt(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  const gg = ['Do','Lu','Ma','Me','Gi','Ve','Sa'][d.getDay()];
+  return gg + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3);
+}
+
 function mondayOf(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const day = d.getDay() || 7;
@@ -669,6 +676,27 @@ const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
 /* ── Overlays ───────────────────────────────────── */
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(html) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = html;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3300);
+}
+
+let _undoRec = null, _undoTimer = null;
+function undoDel() {
+  if (!_undoRec) return;
+  clearTimeout(_undoTimer);
+  const all = getRecs();
+  all.splice(_undoRec.idx, 0, _undoRec.rec);
+  saveRecs(all);
+  _undoRec = null;
+  renderDayBody(currentDay);
+  refreshStats();
+  refreshCal();
+}
 
 document.querySelectorAll('.overlay').forEach(ov => {
   ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
@@ -770,8 +798,8 @@ function getSettings() {
 }
 function saveSettings(cfg) { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 
-function calcolaImportoGiornata(min) {
-  const cfg = getSettings();
+function calcolaImportoGiornata(min, cfg) {
+  cfg = cfg || getSettings();
   const sogl = cfg.ore_soglia * 60;
   return min <= sogl ? cfg.paga_giornata : cfg.paga_giornata + ((min - sogl) / 60) * cfg.paga_ora_extra;
 }
@@ -812,9 +840,10 @@ function refreshStats() {
     setBar('box2-bg','box2-br', 1 - pct);
   } else {
     const compHas = r => r.uscita_ts > 0;
-    document.getElementById('s-oggi').textContent = all.filter(r => r.data === t && compHas(r)).length || '—';
-    document.getElementById('s-sett').textContent = all.filter(r => inSett(r) && compHas(r)).length || '—';
-    document.getElementById('s-mese').textContent = all.filter(r => r.data.startsWith(ym) && compHas(r)).length || '—';
+    const fmtGg = n => n > 0 ? n + ' gg' : '—';
+    document.getElementById('s-oggi').textContent = fmtGg(all.filter(r => r.data === t && compHas(r)).length);
+    document.getElementById('s-sett').textContent = fmtGg(all.filter(r => inSett(r) && compHas(r)).length);
+    document.getElementById('s-mese').textContent = fmtGg(all.filter(r => r.data.startsWith(ym) && compHas(r)).length);
     const pag  = all.filter(r =>  r.pagato && r.uscita_ts);
     const npag = all.filter(r => !r.pagato && r.uscita_ts);
     const pagE = pag.reduce((a, r) => a + (r.importo || 0), 0);
@@ -822,10 +851,10 @@ function refreshStats() {
     const tot  = pag.length + npag.length;
     const pct  = tot > 0 ? pag.length / tot : 0;
     document.getElementById('box1-lbl').textContent = 'Giornate pagate';
-    document.getElementById('box1-val').textContent = pag.length || '—';
+    document.getElementById('box1-val').textContent = pag.length > 0 ? pag.length + ' gg' : '—';
     document.getElementById('box1-sub').textContent = pagE > 0 ? '€ ' + pagE.toFixed(2) : '—';
     document.getElementById('box2-lbl').textContent = 'Da pagare';
-    document.getElementById('box2-val').textContent = npag.length || '—';
+    document.getElementById('box2-val').textContent = npag.length > 0 ? npag.length + ' gg' : '—';
     document.getElementById('box2-sub').textContent = npE > 0 ? '~ € ' + npE.toFixed(2) : '';
     setBar('box1-bg','box1-br', pct);
     setBar('box2-bg','box2-br', 1 - pct);
@@ -865,7 +894,7 @@ function refreshCal() {
     const ds     = prefix + '-' + String(d).padStart(2, '0');
     const min    = hMap[ds] || 0;
     const minPag = hPagMap[ds] || 0;
-    const cls    = ['cal-cell', min > 0 && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
+    const cls    = ['cal-cell', 'cal-day', min > 0 && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
     let bar = '';
     if (min > 0) {
       const pct = Math.min(minPag / min, 1);
@@ -955,11 +984,18 @@ function patchRec(id, field, value) {
 }
 
 function delRec(id) {
-  if (!confirm('Eliminare questa timbratura?')) return;
-  saveRecs(getRecs().filter(r => r.id !== id));
+  const all = getRecs();
+  const idx = all.findIndex(r => r.id === id);
+  if (idx === -1) return;
+  _undoRec = { rec: all[idx], idx };
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(() => { _undoRec = null; }, 3200);
+  all.splice(idx, 1);
+  saveRecs(all);
   renderDayBody(currentDay);
   refreshStats();
   refreshCal();
+  showToast('Eliminata &nbsp;·&nbsp; <span onclick="undoDel()" style="text-decoration:underline;cursor:pointer;color:var(--text)">ANNULLA</span>');
 }
 
 /* ── MODAL: paga ──────────────────────────────────── */
@@ -970,7 +1006,10 @@ function buildPagaBody() {
   const el   = document.getElementById('paga-body');
 
   if (cfg.metodo === 1) {
-    el.innerHTML = '<div class="fg"><label>Ore pagate</label><input type="number" id="p-ore" min="0" step="0.5"></div>' +
+    const npM = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0);
+    const ref = npM > 0 ? '<p style="font-size:13px;color:var(--soft);margin:0 0 16px">Non pagate: <strong style="color:var(--text)">' + fmtH(npM) + '</strong></p>' : '';
+    el.innerHTML = ref +
+      '<div class="fg"><label>Ore pagate</label><input type="number" id="p-ore" min="0" step="0.5"></div>' +
       '<div class="fg"><label>Importo € (opz.)</label><input type="number" id="p-imp" min="0" step="0.01"></div>';
   } else {
     let html = '<p style="font-size:13px;color:var(--soft);margin:0 0 12px">Seleziona le giornate da pagare (vuoto = tutte dal più vecchio)</p>';
@@ -982,7 +1021,7 @@ function buildPagaBody() {
         const imp = calcolaImportoGiornata(min);
         html += '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">' +
           '<input type="checkbox" class="paga-chk" data-id="' + r.id + '" data-imp="' + imp.toFixed(2) + '">' +
-          '<span style="flex:1"><span style="font-weight:600">' + r.data + '</span>' +
+          '<span style="flex:1"><span style="font-weight:600">' + fmtDataIt(r.data) + '</span>' +
           ' &nbsp; ' + (r.entrata || '') + '–' + (r.uscita || '') +
           ' &nbsp; <span style="color:var(--soft)">' + fmtH(min) + '</span></span>' +
           '<span style="color:var(--soft);font-size:13px">€ ' + imp.toFixed(2) + '</span>' +
@@ -1029,17 +1068,26 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
     } else {
       // nessuna selezione: tutte dal più vecchio
       candidati = all.filter(r => !r.pagato && r.uscita_ts).sort((a, b) => a.entrata_ts - b.entrata_ts);
+      if (!candidati.length) { closeModal('ov-paga'); return; }
+      if (!confirm('Segna come pagate tutte le ' + candidati.length + ' giornate non pagate?')) return;
     }
     for (const r of candidati) {
       r.pagato  = true;
       r.importo = calcolaImportoGiornata(recMin(r));
     }
+    saveRecs(all);
+    closeModal('ov-paga');
+    refreshStats();
+    refreshCal();
+    showToast(candidati.length + ' giornate segnate come pagate');
+    return;
   }
 
   saveRecs(all);
   closeModal('ov-paga');
   refreshStats();
   refreshCal();
+  showToast('Pagamento applicato');
 });
 
 
@@ -1113,7 +1161,7 @@ function confirmTimbratura(ds) {
 refreshHome();
 refreshStats();
 refreshCal();
-setTimeout(() => document.getElementById('splash').remove(), 3700);
+setTimeout(() => document.getElementById('splash').remove(), 2500);
 </script>
 </body>
 </html>
