@@ -959,26 +959,34 @@ btnMain.addEventListener('click', () => {
   btnMain.classList.remove('pulsed');
   void btnMain.offsetWidth;
   btnMain.classList.add('pulsed');
-  const s = getStato();
+  const s   = getStato();
+  const cfg = getSettings();
   if (!s) {
-    saveStato({ ts: Date.now(), data: todayStr(), sito: '' });
+    const now = Date.now();
+    if (cfg.metodo === 3) {
+      // Metodo 3: salva subito la presenza, aggiorna con uscita dopo
+      const all = getRecs();
+      const newId = uid();
+      all.push({ id: newId, data: todayStr(), entrata: tsToHM(now), uscita: '', entrata_ts: now, uscita_ts: 0, sito: '', nota: '', pagato: false, importo: 0 });
+      saveRecs(all);
+      saveStato({ ts: now, data: todayStr(), sito: '', rec_id: newId });
+      refreshStats();
+      refreshCal();
+    } else {
+      saveStato({ ts: now, data: todayStr(), sito: '' });
+    }
     hdrMsg.textContent = 'Buon lavoro amore mio!🤍';
-    showToast('Timbratura avviata', 'ok');
+    showToast('Presenza segnata', 'ok');
   } else {
     const all = getRecs();
-    all.push({
-      id:         uid(),
-      data:       s.data,
-      entrata:    tsToHM(s.ts),
-      uscita:     tsToHM(Date.now()),
-      entrata_ts: s.ts,
-      uscita_ts:  Date.now(),
-      sito:       s.sito || '',
-      nota:       '',
-      pagato:     false,
-      importo:    0
-    });
-    saveRecs(all);
+    if (cfg.metodo === 3 && s.rec_id) {
+      // Aggiorna il record esistente con l'uscita
+      const rec = all.find(r => r.id === s.rec_id);
+      if (rec) { rec.uscita = tsToHM(Date.now()); rec.uscita_ts = Date.now(); saveRecs(all); }
+    } else {
+      all.push({ id: uid(), data: s.data, entrata: tsToHM(s.ts), uscita: tsToHM(Date.now()), entrata_ts: s.ts, uscita_ts: Date.now(), sito: s.sito || '', nota: '', pagato: false, importo: 0 });
+      saveRecs(all);
+    }
     saveStato(null);
     hdrMsg.textContent = 'Sei stata bravissima, come al solito!🤍';
     refreshStats();
