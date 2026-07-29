@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Presenze">
 <title>Presenze</title>
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAADrUlEQVR42u3dS3LCQAxF0ZBiCvtfJxtIRlRlkFRs/EF6OneaD1b35VndNuZyu92+PoAQPg0BCA0QGiA0QGgQGiA0QGiA0AChQWiA0AChAUIDhAahAUIDhAYIDRAahAYIDRAaIDRAaBAaIDRAaIDQAKERynVKoY/HY/Hv3u93NTXlkvx86DUT3kWExJoIfcKkV5MgsSZCv2HS3y1BYk2ELjDp7xAgtS6LwpMn6z+Rnj8/SoClIu9Zk4RukMx7CHfGa6TXROiNk3LEhJzxeok1EXrDRJwxCUe9dmJN7+CTzPv04lt61MSaJHTDJPnteNYeyx7/Q1I3TOik02JVEpK6RUJXSrE9jy21Lgn94kq8aqotOeaOwnRI6pa3j2ozjHFLobuk2NqUTq2L0EGn5KWTn1oXoYEpQnddYf+XZql1ERo4iHL70F1T7JX0SqirWg0SGnpogNBD2o2lx5xSV7XFoYSGhMa2lHbpfoDQKe3GxDdqpbZDQkNCA4QGCA0QGoO5GoLjdwSOfnQYJDQIjS1JnZ7OVfaiCY2XW6mKb1hCY3Mau1IIEBogNAgNEBogNEBooKvQU76KrBMe1rgQN+70pdLcaTmg5QAI/eKpSx9du3/2bDuA0EBTobUd2g0JDVQWWkpLZwkNdBNaShvztkK7FF6XynPTruWQ0sa6rdBS2pyspdzXuq1JCsIb75YtB3HNQWwPrZ82phFCS2ljH5/QQGuhXRI/v93odmZsl9CkJnNcy0FqMsf10KQm84hFIalnj1VroW3lGdP4hJbSs8eovdBS2ljGJ7SUnjs2Le62m7piN0bDE9pWnjd8XMtB6tlnr8gemtRzW7HYRSGpZ64rom8fnS71xEVy/P3QU6WeuuMz4gb/aVJP3r4c84mVKVJP34sf9RGsdKldWBr4mcJUqck8VOhEqck8XOgkqclM6BipyUzoGKnJTOgYqclM6BipyUzoGKnJTGgQWkpXTGnpTOgYqclM6BipyUzoGKnJTOgYqclM6BipyUxogNAVU1o6EzpGajITOkZqMhO6FFuk9qiy/Yh6+mgFidemqmSW0AChK/bT0pnQAKErprR0JnSM1GQmNEDoiiktnQndmp8Cu4BC6PYpfcTf4G+uhuDclIaEjk1p6UxogNAVU1o6ExogdMWUls6EBggNQgOEBqrgM4Un8LxSaDEooQEJDQkNEBogNEBogNAgNEBogNAAoQFCg9AAoQFCA4QGCA1CA4QGCA0QGiA0CA0QGiA0sJFvvRYKWSNiddkAAAAASUVORK5CYII=">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><rect width=%27100%27 height=%27100%27 fill=%27%230d0d0d%27/><path d=%27M50 78C50 78 18 57 18 35c0-13 10-19 21-16 5 2 9 7 11 11 2-4 6-9 11-11 11-3 21 3 21 16 0 22-32 43-32 43z%27 fill=%27none%27 stroke=%27white%27 stroke-width=%275%27 stroke-linejoin=%27round%27/></svg>">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -255,6 +257,7 @@ nav button.active {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
   animation: splashFade 0.8s ease 1.7s forwards;
 }
 #splash-heart {
@@ -728,13 +731,6 @@ nav button.active {
 
 
 <script>
-window.onerror = function(msg, src, line, col, err) {
-  var d = document.createElement('div');
-  d.style.cssText = 'position:fixed;inset:0;background:#0d0d0d;color:#fff;padding:24px;font-size:13px;z-index:99999;white-space:pre-wrap;word-break:break-all';
-  d.textContent = 'ERRORE JS\nLinea ' + line + ': ' + msg + (err ? '\n' + err.stack : '');
-  document.body.appendChild(d);
-  return true;
-};
 'use strict';
 
 /* ── Storage ────────────────────────────────────── */
@@ -1415,10 +1411,10 @@ function confirmTimbratura(ds) {
 
 
 /* ── Init ───────────────────────────────────────── */
-try { refreshHome(); } catch(e) { alert('ERR refreshHome: ' + e.message); }
-try { refreshStats(); } catch(e) { alert('ERR refreshStats: ' + e.message); }
-try { refreshCal(); } catch(e) { alert('ERR refreshCal: ' + e.message); }
-setTimeout(() => { const s = document.getElementById('splash'); if(s) s.remove(); }, 2500);
+refreshHome();
+refreshStats();
+refreshCal();
+setTimeout(() => document.getElementById('splash').remove(), 2500);
 </script>
 </body>
 </html>
