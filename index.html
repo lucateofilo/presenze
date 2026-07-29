@@ -219,7 +219,6 @@ nav button.active {
   gap: 8px;
   margin-bottom: 28px;
 }
-.totale-full { grid-column: span 2; }
 .totale-box {
   text-align: center;
   border: 1px solid var(--border);
@@ -293,7 +292,8 @@ nav button.active {
   cursor: pointer;
 }
 .cal-cell.has-data:hover { background: #1e1e1e; }
-.cal-cell.cal-day:hover { background: #141414; }
+.cal-cell.cal-day:not(.has-data):hover { background: #141414; }
+.cal-day { touch-action: manipulation; }
 .cal-cell .cn { font-size: 13px; }
 .cal-cell .ch { font-size: 10px; color: var(--soft); margin-top: 2px; }
 .cal-bar { display: flex; width: 100%; height: 3px; margin-top: 6px; border-radius: 1px; overflow: hidden; }
@@ -411,16 +411,6 @@ nav button.active {
 .timb-card { border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
 .timb-lbl  { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
 
-.cb-list { max-height: 200px; overflow-y: auto; }
-.cb-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #161616;
-}
-.cb-item input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--text); flex-shrink: 0; }
-.cb-item label { font-size: 13px; color: var(--soft); cursor: pointer; line-height: 1.4; }
 
 .btn-cta {
   width: 100%;
@@ -578,7 +568,7 @@ nav button.active {
       </div>
     </div>
 
-    <div id="cfg-m2">
+    <div id="cfg-m2" style="display:none">
       <div class="fg"><label>€ per giornata (fino alla soglia)</label><input type="number" id="cfg-paga" step="0.01" min="0"></div>
       <div class="fg"><label>Ore soglia</label><input type="number" id="cfg-soglia" step="0.5" min="1"></div>
       <div class="fg"><label>€ per ora extra (oltre la soglia)</label><input type="number" id="cfg-extra" step="0.01" min="0"></div>
@@ -653,12 +643,6 @@ function fmtH(min) {
   return m ? h + 'h' + String(m).padStart(2,'0') : h + 'h';
 }
 
-function fmtDataIt(ds) {
-  const d = new Date(ds + 'T12:00:00');
-  const gg = ['Do','Lu','Ma','Me','Gi','Ve','Sa'][d.getDay()];
-  return gg + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3);
-}
-
 function mondayOf(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const day = d.getDay() || 7;
@@ -672,6 +656,12 @@ function sitoLabel(s) {
 
 const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
                 'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+function fmtDataIt(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  const gg = ['Do','Lu','Ma','Me','Gi','Ve','Sa'][d.getDay()];
+  return gg + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3);
+}
 
 /* ── Overlays ───────────────────────────────────── */
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
