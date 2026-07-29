@@ -295,6 +295,9 @@ nav button.active {
 .cal-cell.has-data:hover { background: #1e1e1e; }
 .cal-cell .cn { font-size: 13px; }
 .cal-cell .ch { font-size: 10px; color: var(--soft); margin-top: 2px; }
+.cal-bar { display: flex; width: 100%; height: 3px; margin-top: 3px; border-radius: 1px; overflow: hidden; }
+.cal-bar-g { background: #2a5c24; height: 100%; }
+.cal-bar-r { background: #5c2424; height: 100%; }
 
 #btn-export {
   display: block;
@@ -631,11 +634,11 @@ nav button.active {
     </div>
 
     <div class="fg">
-      <label>Giorni da segnare come pagati</label>
-      <div class="cb-list" id="p-list"></div>
+      <label>Ore che ti hanno pagato</label>
+      <input type="number" id="p-ore" step="0.5" min="0" placeholder="es. 20.5">
     </div>
 
-    <button class="btn-cta" id="btn-salva-paga">Segna come pagati</button>
+    <button class="btn-cta" id="btn-salva-paga">Applica pagamento</button>
   </div>
 </div>
 
@@ -827,7 +830,7 @@ function refreshStats() {
     document.getElementById('s-pag-'    + k + '-ore').textContent = fmtH(pagMin);
     document.getElementById('s-pag-'    + k + '-eur').textContent = pagEur > 0 ? '\u20ac ' + pagEur.toFixed(2) : '\u2014';
   });
-  const npTot = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r), 0);
+  const npTot = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0);
   document.getElementById('s-nonpag-ore').textContent = fmtH(npTot);
 
 }
@@ -846,10 +849,14 @@ function refreshCal() {
   let   offset = new Date(calY, calM, 1).getDay(); // 0=dom
   offset = offset === 0 ? 6 : offset - 1;          // 0=lun
 
-  // ore per giorno
-  const hMap = {};
+  // ore per giorno (totali e pagate)
+  const hMap = {}, hPagMap = {};
   all.forEach(r => {
-    if (r.data.startsWith(prefix)) hMap[r.data] = (hMap[r.data] || 0) + recMin(r);
+    if (r.data.startsWith(prefix)) {
+      const m = recMin(r);
+      hMap[r.data]    = (hMap[r.data]    || 0) + m;
+      hPagMap[r.data] = (hPagMap[r.data] || 0) + (r.pagato ? m : (r.ore_pagate || 0));
+    }
   });
 
   const DNAMES = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
@@ -857,12 +864,22 @@ function refreshCal() {
   for (let i = 0; i < offset; i++) html += '<div class="cal-cell"></div>';
 
   for (let d = 1; d <= days; d++) {
-    const ds  = prefix + '-' + String(d).padStart(2, '0');
-    const min = hMap[ds] || 0;
-    const cls = ['cal-cell', min > 0 && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
+    const ds     = prefix + '-' + String(d).padStart(2, '0');
+    const min    = hMap[ds] || 0;
+    const minPag = hPagMap[ds] || 0;
+    const cls    = ['cal-cell', min > 0 && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
+    let bar = '';
+    if (min > 0) {
+      const pct = Math.min(minPag / min, 1);
+      bar = '<div class="cal-bar">'
+          + '<div class="cal-bar-g" style="width:' + (pct * 100).toFixed(1) + '%"></div>'
+          + '<div class="cal-bar-r" style="width:' + ((1 - pct) * 100).toFixed(1) + '%"></div>'
+          + '</div>';
+    }
     html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDay(\'' + ds + '\')">'
           + '<span class="cn">' + d + '</span>'
           + (min > 0 ? '<span class="ch">' + fmtH(min) + '</span>' : '')
+          + bar
           + '</div>';
   }
 
@@ -957,20 +974,8 @@ function delRec(id) {
 
 /* ── MODAL: paga ────────────────────────────────── */
 document.getElementById('btn-paga').addEventListener('click', () => {
-  const nonPag = getRecs()
-    .filter(r => !r.pagato && r.uscita_ts)
-    .sort((a, b) => a.data.localeCompare(b.data));
-
-  document.getElementById('p-list').innerHTML = nonPag.length
-    ? nonPag.map(r => {
-        const lbl = sitoLabel(r.sito);
-        return '<div class="cb-item">'
-          + '<input type="checkbox" id="pp-' + r.id + '" value="' + r.id + '">'
-          + '<label for="pp-' + r.id + '">' + r.data + ' &nbsp; ' + r.entrata + '→' + (r.uscita || '?') + ' &nbsp; (' + fmtH(recMin(r)) + ')' + (lbl ? ' &nbsp;[' + lbl + ']' : '') + '</label>'
-          + '</div>';
-      }).join('')
-    : '<p class="empty-note">Tutti i giorni sono già pagati.</p>';
-
+  document.getElementById('p-ore').value = '';
+  document.getElementById('p-imp').value = '';
   openModal('ov-paga');
 });
 
@@ -978,17 +983,42 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
   const sitoEl  = document.querySelector('input[name="ps"]:checked');
   const sito    = sitoEl ? sitoEl.value : '';
   const importo = parseFloat(document.getElementById('p-imp').value) || 0;
-  const ids     = Array.from(document.querySelectorAll('#p-list input[type=checkbox]:checked')).map(i => i.value);
+  const oreIn   = parseFloat(document.getElementById('p-ore').value) || 0;
+  if (!oreIn) { alert('Inserisci le ore pagate.'); return; }
 
-  if (!ids.length) { alert('Seleziona almeno un giorno.'); return; }
-
+  let minRimasti = Math.round(oreIn * 60);
   const all = getRecs();
-  ids.forEach(id => {
-    const r = all.find(r => r.id === id);
-    if (r) { r.pagato = true; r.importo = importo; if (sito) r.sito = sito; }
-  });
+
+  // record non pagati (o parzialmente) per il sito selezionato, dal più vecchio
+  const candidati = all
+    .filter(r => !r.pagato && r.uscita_ts && (sito ? r.sito === sito : true))
+    .sort((a, b) => a.entrata_ts - b.entrata_ts);
+
+  // calcola ore totali da coprire per distribuzione importo proporzionale
+  const minTotDaCoprire = Math.min(
+    minRimasti,
+    candidati.reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0)
+  );
+
+  for (const r of candidati) {
+    if (minRimasti <= 0) break;
+    const minDisp = recMin(r) - (r.ore_pagate || 0); // ancora non pagati in questo record
+    const quota   = minTotDaCoprire > 0 ? (Math.min(minDisp, minRimasti) / minTotDaCoprire) * importo : 0;
+    if (minRimasti >= minDisp) {
+      r.pagato     = true;
+      r.importo    = Math.round(quota * 100) / 100;
+      delete r.ore_pagate;
+      minRimasti  -= minDisp;
+    } else {
+      r.ore_pagate = (r.ore_pagate || 0) + minRimasti;
+      r.importo    = Math.round(quota * 100) / 100;
+      minRimasti   = 0;
+    }
+  }
+
   saveRecs(all);
   closeModal('ov-paga');
+  refreshStats();
   refreshCal();
 });
 
