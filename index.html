@@ -1070,13 +1070,14 @@ function refreshCal() {
   let   offset = new Date(calY, calM, 1).getDay(); // 0=dom
   offset = offset === 0 ? 6 : offset - 1;          // 0=lun
 
-  // ore per giorno (totali e pagate)
-  const hMap = {}, hPagMap = {};
+  // ore per giorno (totali, pagate, conteggio timbrature)
+  const hMap = {}, hPagMap = {}, cntMap = {};
   all.forEach(r => {
     if (r.data.startsWith(prefix)) {
       const m = recMin(r);
       hMap[r.data]    = (hMap[r.data]    || 0) + m;
       hPagMap[r.data] = (hPagMap[r.data] || 0) + (r.pagato ? m : (r.ore_pagate || 0));
+      cntMap[r.data]  = (cntMap[r.data]  || 0) + 1;
     }
   });
 
@@ -1098,9 +1099,13 @@ function refreshCal() {
           + '</div>';
     }
     const special = ds.slice(5) === '05-11' ? '🌷' : ds.slice(8) === '23' ? '🤍' : '';
+    const cnt     = cntMap[ds] || 0;
+    const oreLabel = min > 0
+      ? '<span class="ch">' + fmtH(min) + (cnt > 1 ? ' <span style="color:var(--soft);font-size:9px">×' + cnt + '</span>' : '') + '</span>'
+      : '';
     html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDay(\'' + ds + '\')">'
           + '<span class="cn">' + d + '</span>'
-          + (special ? '<span style="font-size:10px;line-height:1">' + special + '</span>' : (min > 0 ? '<span class="ch">' + fmtH(min) + '</span>' : ''))
+          + (special ? '<span style="font-size:10px;line-height:1">' + special + '</span>' : oreLabel)
           + bar
           + '</div>';
   }
