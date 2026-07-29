@@ -47,6 +47,47 @@ header {
   justify-content: center;
   position: relative;
 }
+#btn-diary {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--soft);
+  transition: color 0.2s;
+  line-height: 0;
+}
+#btn-diary:hover { color: var(--text); }
+#btn-diary.active { color: var(--text); }
+
+.diary-banner {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.diary-banner-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+#diary-nota {
+  resize: vertical;
+  height: 220px;
+}
+
 #btn-gear {
   position: absolute;
   right: 16px;
@@ -319,6 +360,22 @@ nav button.active {
 .cal-bar-g { background: #2a5c24; height: 100%; }
 .cal-bar-r { background: #5c2424; height: 100%; }
 
+#btn-diary-export {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--soft);
+  font-size: 11px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+#btn-diary-export:hover { border-color: var(--muted); color: var(--text); }
+
 #btn-export {
   display: block;
   width: 100%;
@@ -511,6 +568,11 @@ nav button.active {
 
 <header>
   <div class="hdr-title">Presenze</div>
+  <button id="btn-diary" aria-label="Diario">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+    </svg>
+  </button>
   <button id="btn-gear" aria-label="Impostazioni">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/>
@@ -599,6 +661,36 @@ nav button.active {
     </div>
 
     <button class="btn-cta" id="btn-salva-cfg">Salva impostazioni</button>
+  </div>
+</div>
+
+<!-- ── DIARIO ── -->
+<div id="v-diary" class="view">
+  <div class="diary-banner" id="diary-banner" style="display:none">
+    <span id="diary-banner-txt" style="flex:1"></span>
+    <button class="diary-banner-btn" onclick="exportDiary()">Esporta ora</button>
+  </div>
+  <div class="cal-nav" style="margin-top:24px;">
+    <button id="d-prev">‹</button>
+    <span id="d-label"></span>
+    <button id="d-next">›</button>
+  </div>
+  <div class="cal-grid" id="diary-grid"></div>
+  <button id="btn-diary-export">↓ Backup Excel</button>
+</div>
+
+<!-- ── MODAL: giorno diario ── -->
+<div class="overlay" id="ov-diary-day">
+  <div class="sheet">
+    <div class="sheet-top">
+      <h2 id="diary-day-title"></h2>
+      <button class="btn-close" data-close="ov-diary-day">×</button>
+    </div>
+    <div class="fg">
+      <label>Note</label>
+      <textarea id="diary-nota" class="fg"></textarea>
+    </div>
+    <button class="btn-cta" id="btn-salva-diary-day">Salva</button>
   </div>
 </div>
 
@@ -727,6 +819,7 @@ document.querySelectorAll('nav button').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('v-' + btn.dataset.view).classList.add('active');
     document.getElementById('btn-gear').classList.remove('active');
+    document.getElementById('btn-diary').classList.remove('active');
     if (btn.dataset.view === 'reg') { refreshStats(); refreshCal(); }
   });
 });
@@ -737,7 +830,6 @@ document.getElementById('btn-gear').addEventListener('click', () => {
   const gear = document.getElementById('btn-gear');
   const isSet = document.getElementById('v-set').classList.contains('active');
   if (isSet) {
-    // torna a HOME
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('v-home').classList.add('active');
@@ -746,9 +838,29 @@ document.getElementById('btn-gear').addEventListener('click', () => {
   } else {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-diary').classList.remove('active');
     document.getElementById('v-set').classList.add('active');
     gear.classList.add('active');
     initCfgForm();
+  }
+});
+
+/* ── Diary button ────────────────────────────────── */
+document.getElementById('btn-diary').addEventListener('click', () => {
+  const btn   = document.getElementById('btn-diary');
+  const isDiary = document.getElementById('v-diary').classList.contains('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-gear').classList.remove('active');
+  if (isDiary) {
+    document.getElementById('v-home').classList.add('active');
+    document.querySelector('nav button[data-view="home"]').classList.add('active');
+    btn.classList.remove('active');
+  } else {
+    document.getElementById('v-diary').classList.add('active');
+    btn.classList.add('active');
+    checkDiaryBanner();
+    refreshDiaryCal();
   }
 });
 
@@ -1124,6 +1236,95 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
   showToast('Pagamento applicato');
 });
 
+
+/* ── DIARIO ─────────────────────────────────────── */
+const DIARY_KEY   = 'pr_diary';
+const DEXPORT_KEY = 'pr_diary_export';
+
+function getDiary()      { return JSON.parse(localStorage.getItem(DIARY_KEY)   || '{}'); }
+function saveDiary(d)    { localStorage.setItem(DIARY_KEY, JSON.stringify(d)); }
+
+let dCalY, dCalM;
+(function() { const n = new Date(); dCalY = n.getFullYear(); dCalM = n.getMonth(); })();
+
+function checkDiaryBanner() {
+  const diary   = getDiary();
+  const hasData = Object.keys(diary).some(k => diary[k].trim());
+  if (!hasData) { document.getElementById('diary-banner').style.display = 'none'; return; }
+  const lastExp = parseInt(localStorage.getItem(DEXPORT_KEY) || '0');
+  const days    = Math.floor((Date.now() - lastExp) / 86400000);
+  const banner  = document.getElementById('diary-banner');
+  if (!lastExp || days >= 7) {
+    document.getElementById('diary-banner-txt').textContent =
+      lastExp ? 'Backup consigliato — ultimo ' + days + ' giorni fa' : 'Nessun backup ancora — esporta il diario';
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function refreshDiaryCal() {
+  document.getElementById('d-label').textContent = MONTHS[dCalM] + ' ' + dCalY;
+  const diary  = getDiary();
+  const t      = todayStr();
+  const prefix = dCalY + '-' + String(dCalM + 1).padStart(2, '0');
+  const days   = new Date(dCalY, dCalM + 1, 0).getDate();
+  let offset   = new Date(dCalY, dCalM, 1).getDay();
+  offset = offset === 0 ? 6 : offset - 1;
+
+  const DNAMES = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+  let html = DNAMES.map(d => '<div class="cal-hdr">' + d + '</div>').join('');
+  for (let i = 0; i < offset; i++) html += '<div class="cal-cell"></div>';
+
+  for (let d = 1; d <= days; d++) {
+    const ds  = prefix + '-' + String(d).padStart(2, '0');
+    const txt = diary[ds] ? diary[ds].trim() : '';
+    const cls = ['cal-cell', 'cal-day', txt && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
+    const dot = txt ? '<span style="width:4px;height:4px;border-radius:50%;background:var(--soft);margin-top:4px;display:block"></span>' : '';
+    html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDiaryDay('' + ds + '')">'
+          + '<span class="cn">' + d + '</span>'
+          + dot
+          + '</div>';
+  }
+  document.getElementById('diary-grid').innerHTML = html;
+}
+
+function openDiaryDay(ds) {
+  const d = new Date(ds + 'T12:00:00');
+  document.getElementById('diary-day-title').textContent = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  document.getElementById('diary-nota').value = getDiary()[ds] || '';
+  document.getElementById('btn-salva-diary-day').onclick = () => {
+    const val = document.getElementById('diary-nota').value;
+    const diary = getDiary();
+    if (val.trim()) diary[ds] = val; else delete diary[ds];
+    saveDiary(diary);
+    closeModal('ov-diary-day');
+    refreshDiaryCal();
+  };
+  openModal('ov-diary-day');
+}
+
+function exportDiary() {
+  const diary = getDiary();
+  const keys  = Object.keys(diary).filter(k => diary[k].trim()).sort();
+  if (!keys.length) { alert('Nessuna nota nel diario.'); return; }
+  const rows = keys.map(k => ({ 'Data': k, 'Note': diary[k] }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 80 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Diario');
+  XLSX.writeFile(wb, 'diario_' + todayStr() + '.xlsx');
+  localStorage.setItem(DEXPORT_KEY, Date.now().toString());
+  checkDiaryBanner();
+}
+
+document.getElementById('d-prev').addEventListener('click', () => {
+  dCalM--; if (dCalM < 0) { dCalM = 11; dCalY--; } refreshDiaryCal();
+});
+document.getElementById('d-next').addEventListener('click', () => {
+  dCalM++; if (dCalM > 11) { dCalM = 0; dCalY++; } refreshDiaryCal();
+});
+document.getElementById('btn-diary-export').addEventListener('click', exportDiary);
 
 /* ── EXPORT Excel ───────────────────────────────── */
 document.getElementById('btn-export').addEventListener('click', () => {
