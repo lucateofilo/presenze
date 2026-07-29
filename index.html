@@ -980,29 +980,20 @@ btnMain.addEventListener('click', () => {
   const cfg = getSettings();
   if (!s) {
     const now = Date.now();
-    if (cfg.metodo === 3) {
-      // Metodo 3: salva subito la presenza, aggiorna con uscita dopo
-      const all = getRecs();
-      const newId = uid();
-      all.push({ id: newId, data: todayStr(), entrata: tsToHM(now), uscita: '', entrata_ts: now, uscita_ts: 0, sito: '', nota: '', pagato: false, importo: 0 });
-      saveRecs(all);
-      saveStato({ ts: now, data: todayStr(), sito: '', rec_id: newId });
-      refreshStats();
-      refreshCal();
-    } else {
-      saveStato({ ts: now, data: todayStr(), sito: '' });
-    }
+    const all = getRecs();
+    const newId = uid();
+    all.push({ id: newId, data: todayStr(), entrata: tsToHM(now), uscita: '', entrata_ts: now, uscita_ts: 0, sito: '', nota: '', pagato: false, importo: 0 });
+    saveRecs(all);
+    saveStato({ ts: now, data: todayStr(), sito: '', rec_id: newId });
+    refreshStats();
+    refreshCal();
     hdrMsg.textContent = 'Buon lavoro amore mio!🤍';
     showToast('Presenza segnata', 'ok');
   } else {
     const all = getRecs();
-    if (cfg.metodo === 3 && s.rec_id) {
-      // Aggiorna il record esistente con l'uscita
+    if (s.rec_id) {
       const rec = all.find(r => r.id === s.rec_id);
       if (rec) { rec.uscita = tsToHM(Date.now()); rec.uscita_ts = Date.now(); saveRecs(all); }
-    } else {
-      all.push({ id: uid(), data: s.data, entrata: tsToHM(s.ts), uscita: tsToHM(Date.now()), entrata_ts: s.ts, uscita_ts: Date.now(), sito: s.sito || '', nota: '', pagato: false, importo: 0 });
-      saveRecs(all);
     }
     saveStato(null);
     hdrMsg.textContent = 'Sei stata bravissima, come al solito!🤍';
@@ -1136,8 +1127,7 @@ function refreshCal() {
   let   offset = new Date(calY, calM, 1).getDay(); // 0=dom
   offset = offset === 0 ? 6 : offset - 1;          // 0=lun
 
-  const cfg3 = getSettings().metodo === 3;
-  // ore per giorno (totali, pagate, conteggio, presenze senza uscita)
+  // ore per giorno (totali, pagate, conteggio, checkpoint senza uscita)
   const hMap = {}, hPagMap = {}, cntMap = {}, presMap = {};
   all.forEach(r => {
     if (r.data.startsWith(prefix)) {
@@ -1145,7 +1135,7 @@ function refreshCal() {
       hMap[r.data]    = (hMap[r.data]    || 0) + m;
       hPagMap[r.data] = (hPagMap[r.data] || 0) + (r.pagato ? m : (r.ore_pagate || 0));
       cntMap[r.data]  = (cntMap[r.data]  || 0) + 1;
-      if (cfg3 && !r.uscita_ts) presMap[r.data] = (presMap[r.data] || 0) + 1;
+      if (!r.uscita_ts) presMap[r.data] = (presMap[r.data] || 0) + 1;
     }
   });
 
