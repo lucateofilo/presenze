@@ -633,7 +633,7 @@ nav button.active {
   </div>
   <div class="cal-grid" id="cal-grid"></div>
 
-  <button id="btn-export">↓ Esporta Excel</button>
+  <button id="btn-export">↓ Backup completo</button>
 </div>
 
 <nav>
@@ -668,7 +668,7 @@ nav button.active {
 <div id="v-diary" class="view">
   <div class="diary-banner" id="diary-banner" style="display:none">
     <span id="diary-banner-txt" style="flex:1"></span>
-    <button class="diary-banner-btn" onclick="exportDiary()">Esporta ora</button>
+    <button class="diary-banner-btn" onclick="exportAll()">Esporta ora</button>
   </div>
   <div class="cal-nav" style="margin-top:24px;">
     <button id="d-prev">‹</button>
@@ -676,7 +676,7 @@ nav button.active {
     <button id="d-next">›</button>
   </div>
   <div class="cal-grid" id="diary-grid"></div>
-  <button id="btn-diary-export">↓ Backup Excel</button>
+  <button id="btn-diary-export">↓ Backup completo</button>
 </div>
 
 <!-- ── MODAL: giorno diario ── -->
@@ -1304,18 +1304,43 @@ function openDiaryDay(ds) {
   openModal('ov-diary-day');
 }
 
-function exportDiary() {
+function exportAll() {
+  const all   = getRecs();
   const diary = getDiary();
-  const keys  = Object.keys(diary).filter(k => diary[k].trim()).sort();
-  if (!keys.length) { alert('Nessuna nota nel diario.'); return; }
-  const rows = keys.map(k => ({ 'Data': k, 'Note': diary[k] }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch: 12 }, { wch: 80 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Diario');
-  XLSX.writeFile(wb, 'diario_' + todayStr() + '.xlsx');
+  const wb    = XLSX.utils.book_new();
+
+  // Foglio 1: Presenze
+  const presRows = [...all]
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .map(r => {
+      const min = recMin(r);
+      const h = Math.floor(min / 60), m = Math.round(min % 60);
+      return {
+        'Data':           r.data,
+        'Entrata':        r.entrata || '',
+        'Uscita':         r.uscita  || '',
+        'Ore':            min ? h + ':' + String(m).padStart(2,'0') : '',
+        'Ore (decimali)': min ? +(min / 60).toFixed(2) : '',
+        'Nota':           r.nota    || '',
+        'Pagato':         r.pagato  ? 'Sì' : 'No',
+        'Importo €':      r.importo || ''
+      };
+    });
+  const ws1 = XLSX.utils.json_to_sheet(presRows.length ? presRows : [{ 'Info': 'Nessuna presenza' }]);
+  ws1['!cols'] = [12, 8, 8, 8, 14, 22, 8, 10].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws1, 'Presenze');
+
+  // Foglio 2: Diario
+  const diaryKeys  = Object.keys(diary).filter(k => diary[k].trim()).sort();
+  const diaryRows  = diaryKeys.map(k => ({ 'Data': k, 'Note': diary[k] }));
+  const ws2 = XLSX.utils.json_to_sheet(diaryRows.length ? diaryRows : [{ 'Info': 'Nessuna nota' }]);
+  ws2['!cols'] = [{ wch: 12 }, { wch: 80 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Diario');
+
+  XLSX.writeFile(wb, 'backup_' + todayStr() + '.xlsx');
   localStorage.setItem(DEXPORT_KEY, Date.now().toString());
   checkDiaryBanner();
+  showToast('Backup esportato');
 }
 
 document.getElementById('d-prev').addEventListener('click', () => {
@@ -1324,38 +1349,8 @@ document.getElementById('d-prev').addEventListener('click', () => {
 document.getElementById('d-next').addEventListener('click', () => {
   dCalM++; if (dCalM > 11) { dCalM = 0; dCalY++; } refreshDiaryCal();
 });
-document.getElementById('btn-diary-export').addEventListener('click', exportDiary);
-
-/* ── EXPORT Excel ───────────────────────────────── */
-document.getElementById('btn-export').addEventListener('click', () => {
-  const all = getRecs();
-  if (!all.length) { alert('Nessun dato da esportare.'); return; }
-
-  const rows = [...all]
-    .sort((a, b) => a.data.localeCompare(b.data))
-    .map(r => {
-      const min = recMin(r);
-      const h   = Math.floor(min / 60);
-      const m   = Math.round(min % 60);
-      return {
-        'Data':          r.data,
-        'Entrata':       r.entrata,
-        'Uscita':        r.uscita || '',
-        'Ore':           min ? h + ':' + String(m).padStart(2,'0') : '',
-        'Ore (decimali)': min ? +(min / 60).toFixed(2) : '',
-        'Sito':          sitoLabel(r.sito),
-        'Nota':          r.nota || '',
-        'Pagato':        r.pagato ? 'Sì' : 'No',
-        'Importo €':     r.importo || ''
-      };
-    });
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [12, 8, 8, 8, 14, 8, 22, 8, 10].map(w => ({ wch: w }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Presenze');
-  XLSX.writeFile(wb, 'presenze_' + todayStr() + '.xlsx');
-});
+document.getElementById('btn-diary-export').addEventListener('click', exportAll);
+document.getElementById('btn-export').addEventListener('click', exportAll);
 
 /* ── Aggiungi timbratura manuale ────────────────── */
 function addTimbratura(ds) {
