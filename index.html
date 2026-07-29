@@ -222,26 +222,26 @@ nav button.active {
 .totale-box {
   text-align: center;
   border: 1px solid var(--border);
-  padding: 18px 10px 16px;
+  padding: 16px 8px 14px;
 }
 .totale-lbl {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--soft);
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
 .totale-ore {
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 200;
   line-height: 1;
   letter-spacing: -1px;
 }
 .totale-eur {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--soft);
-  margin-top: 7px;
-  letter-spacing: 1px;
+  margin-top: 6px;
+  letter-spacing: 0.5px;
 }
 
 .cal-nav {
@@ -565,14 +565,24 @@ nav button.active {
 
   <div class="totali-grid">
     <div class="totale-box">
-      <div class="totale-lbl">Pagato</div>
-      <div class="totale-ore" id="s-pag-ore">—</div>
-      <div class="totale-eur" id="s-pag-eur">—</div>
+      <div class="totale-lbl">Pagato · Sito</div>
+      <div class="totale-ore" id="s-pag-B-ore">—</div>
+      <div class="totale-eur" id="s-pag-B-eur">—</div>
     </div>
     <div class="totale-box">
-      <div class="totale-lbl">Non pagato</div>
-      <div class="totale-ore" id="s-nonpag-ore">—</div>
-      <div class="totale-eur" id="s-nonpag-eur"></div>
+      <div class="totale-lbl">Pagato · Sede</div>
+      <div class="totale-ore" id="s-pag-N-ore">—</div>
+      <div class="totale-eur" id="s-pag-N-eur">—</div>
+    </div>
+    <div class="totale-box">
+      <div class="totale-lbl">Da pagare · Sito</div>
+      <div class="totale-ore" id="s-nonpag-B-ore">—</div>
+      <div class="totale-eur" id="s-nonpag-B-eur"></div>
+    </div>
+    <div class="totale-box">
+      <div class="totale-lbl">Da pagare · Sede</div>
+      <div class="totale-ore" id="s-nonpag-N-ore">—</div>
+      <div class="totale-eur" id="s-nonpag-N-eur"></div>
     </div>
   </div>
 
@@ -813,14 +823,16 @@ function refreshStats() {
 
   document.getElementById('s-mese').textContent = fmtH(sum(r => r.data.startsWith(ym)));
 
-  const pagati    = all.filter(r =>  r.pagato && r.uscita_ts);
-  const nonPagati = all.filter(r => !r.pagato && r.uscita_ts);
-  const pagMin    = pagati.reduce((a, r) => a + recMin(r), 0);
-  const pagEur    = pagati.reduce((a, r) => a + (r.importo || 0), 0);
-  const nonPagMin = nonPagati.reduce((a, r) => a + recMin(r), 0);
-  document.getElementById('s-pag-ore').textContent    = fmtH(pagMin);
-  document.getElementById('s-pag-eur').textContent    = pagEur > 0 ? '\u20ac ' + pagEur.toFixed(2) : '\u2014';
-  document.getElementById('s-nonpag-ore').textContent = fmtH(nonPagMin);
+  ['B','N'].forEach(k => {
+    const pag    = all.filter(r =>  r.pagato && r.uscita_ts && r.sito === k);
+    const nonPag = all.filter(r => !r.pagato && r.uscita_ts && r.sito === k);
+    const pagMin = pag.reduce((a, r) => a + recMin(r), 0);
+    const pagEur = pag.reduce((a, r) => a + (r.importo || 0), 0);
+    const npMin  = nonPag.reduce((a, r) => a + recMin(r), 0);
+    document.getElementById('s-pag-'    + k + '-ore').textContent = fmtH(pagMin);
+    document.getElementById('s-pag-'    + k + '-eur').textContent = pagEur > 0 ? '\u20ac ' + pagEur.toFixed(2) : '\u2014';
+    document.getElementById('s-nonpag-' + k + '-ore').textContent = fmtH(npMin);
+  });
 
 }
 
