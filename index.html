@@ -989,10 +989,36 @@ document.getElementById('btn-export').addEventListener('click', () => {
 
 /* ── Aggiungi timbratura manuale ────────────────── */
 function addTimbratura(ds) {
+  const body = document.getElementById('day-body');
+  // sostituisce il bottone + con il form inline
+  const form = body.querySelector('.timb-form');
+  if (form) return; // già aperto
+  const div = document.createElement('div');
+  div.className = 'timb-form';
+  div.innerHTML =
+    '<div class="fg"><label>Entrata</label><input type="time" id="tf-in"></div>'
+  + '<div class="fg"><label>Uscita</label><input type="time" id="tf-out"></div>'
+  + '<button class="btn-cta" onclick="confirmTimbratura(\'' + ds + '\')">Conferma</button>'
+  + '<button class="btn-del" onclick="renderDayBody(\'' + ds + '\')">Annulla</button>';
+  body.querySelector('.btn-add').replaceWith(div);
+}
+
+function confirmTimbratura(ds) {
+  const entrata = document.getElementById('tf-in').value;
+  const uscita  = document.getElementById('tf-out').value;
+  if (!entrata) { alert('Inserisci almeno l\'orario di entrata.'); return; }
   const all = getRecs();
-  all.push({ id: uid(), data: ds, entrata: '', uscita: '', entrata_ts: 0, uscita_ts: 0, sito: '', nota: '', pagato: false, importo: 0 });
+  all.push({
+    id: uid(), data: ds,
+    entrata, uscita,
+    entrata_ts: hmToTs(ds, entrata),
+    uscita_ts:  uscita ? hmToTs(ds, uscita) : 0,
+    sito: '', nota: '', pagato: false, importo: 0
+  });
   saveRecs(all);
   renderDayBody(ds);
+  refreshStats();
+  refreshCal();
 }
 
 
