@@ -372,6 +372,35 @@ nav button.active {
 .cal-bar-g { background: #2a5c24; height: 100%; }
 .cal-bar-r { background: #5c2424; height: 100%; }
 
+#btn-new-diary {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  padding: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+}
+#btn-new-diary:active { background: var(--surface); }
+
+.diary-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  touch-action: manipulation;
+}
+.diary-item-date { font-size: 11px; color: var(--soft); letter-spacing: 1px; }
+.diary-item-preview { font-size: 14px; color: var(--text); }
+.diary-empty { padding: 24px 0; font-size: 13px; color: var(--soft); text-align: center; }
+
 #btn-diary-export {
   display: block;
   width: 100%;
@@ -385,6 +414,7 @@ nav button.active {
   cursor: pointer;
   text-transform: uppercase;
   transition: all 0.2s;
+  touch-action: manipulation;
 }
 #btn-diary-export:hover { border-color: var(--muted); color: var(--text); }
 
@@ -682,12 +712,8 @@ nav button.active {
     <span id="diary-banner-txt" style="flex:1"></span>
     <button class="diary-banner-btn" onclick="exportAll()">Esporta ora</button>
   </div>
-  <div class="cal-nav" style="margin-top:24px;">
-    <button id="d-prev">‹</button>
-    <span id="d-label"></span>
-    <button id="d-next">›</button>
-  </div>
-  <div class="cal-grid" id="diary-grid"></div>
+  <button id="btn-new-diary" onclick="openDiaryDay(todayStr())">+ Nota di oggi</button>
+  <div id="diary-list"></div>
   <button id="btn-diary-export">↓ Backup completo</button>
 </div>
 
@@ -871,7 +897,7 @@ document.getElementById('btn-diary').addEventListener('click', () => {
     document.getElementById('v-diary').classList.add('active');
     btn.classList.add('active');
     checkDiaryBanner();
-    refreshDiaryCal();
+    refreshDiaryList();
   }
 });
 
@@ -1255,8 +1281,6 @@ const DEXPORT_KEY = 'pr_diary_export';
 function getDiary()      { return JSON.parse(localStorage.getItem(DIARY_KEY)   || '{}'); }
 function saveDiary(d)    { localStorage.setItem(DIARY_KEY, JSON.stringify(d)); }
 
-let dCalY, dCalM;
-(function() { const n = new Date(); dCalY = n.getFullYear(); dCalM = n.getMonth(); })();
 
 function checkDiaryBanner() {
   const diary   = getDiary();
@@ -1274,31 +1298,23 @@ function checkDiaryBanner() {
   }
 }
 
-function refreshDiaryCal() {
-  document.getElementById('d-label').textContent = MONTHS[dCalM] + ' ' + dCalY;
-  const diary  = getDiary();
-  const t      = todayStr();
-  const prefix = dCalY + '-' + String(dCalM + 1).padStart(2, '0');
-  const days   = new Date(dCalY, dCalM + 1, 0).getDate();
-  let offset   = new Date(dCalY, dCalM, 1).getDay();
-  offset = offset === 0 ? 6 : offset - 1;
-
-  const DNAMES = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
-  let html = DNAMES.map(d => '<div class="cal-hdr">' + d + '</div>').join('');
-  for (let i = 0; i < offset; i++) html += '<div class="cal-cell"></div>';
-
-  for (let d = 1; d <= days; d++) {
-    const ds  = prefix + '-' + String(d).padStart(2, '0');
-    const txt = diary[ds] ? diary[ds].trim() : '';
-    const cls = ['cal-cell', 'cal-day', txt && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
-    const dSpecial = ds.slice(5) === '05-11' ? '🌷' : ds.slice(8) === '23' ? '🤍' : '';
-    const dot = txt ? '<span style="width:4px;height:4px;border-radius:50%;background:var(--soft);margin-top:4px;display:block"></span>' : '';
-    html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDiaryDay('' + ds + '')">'
-          + '<span class="cn">' + d + '</span>'
-          + (dSpecial ? '<span style="font-size:10px;line-height:1">' + dSpecial + '</span>' : dot)
-          + '</div>';
+function refreshDiaryList() {
+  const diary = getDiary();
+  const keys  = Object.keys(diary).filter(k => diary[k].trim()).sort().reverse();
+  const el    = document.getElementById('diary-list');
+  if (!keys.length) {
+    el.innerHTML = '<div class="diary-empty">Nessuna nota ancora</div>';
+    return;
   }
-  document.getElementById('diary-grid').innerHTML = html;
+  el.innerHTML = keys.map(k => {
+    const d = new Date(k + 'T12:00:00');
+    const dateStr = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+    const firstLine = diary[k].trim().split('\n')[0].slice(0, 80);
+    return '<div class="diary-item" onclick="openDiaryDay(\'' + k + '\')">'
+         + '<span class="diary-item-date">' + dateStr + '</span>'
+         + '<span class="diary-item-preview">' + firstLine + '</span>'
+         + '</div>';
+  }).join('');
 }
 
 function openDiaryDay(ds) {
@@ -1311,7 +1327,7 @@ function openDiaryDay(ds) {
     if (val.trim()) diary[ds] = val; else delete diary[ds];
     saveDiary(diary);
     closeModal('ov-diary-day');
-    refreshDiaryCal();
+    refreshDiaryList();
   };
   openModal('ov-diary-day');
 }
@@ -1366,12 +1382,6 @@ function exportAll() {
   });
 }
 
-document.getElementById('d-prev').addEventListener('click', () => {
-  dCalM--; if (dCalM < 0) { dCalM = 11; dCalY--; } refreshDiaryCal();
-});
-document.getElementById('d-next').addEventListener('click', () => {
-  dCalM++; if (dCalM > 11) { dCalM = 0; dCalY++; } refreshDiaryCal();
-});
 document.getElementById('btn-diary-export').addEventListener('click', exportAll);
 document.getElementById('btn-export').addEventListener('click', exportAll);
 
