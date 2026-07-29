@@ -45,17 +45,19 @@ header {
   text-align: center;
 }
 .hdr-title {
-  font-size: 15px;
-  letter-spacing: 5px;
+  font-size: 18px;
+  letter-spacing: 6px;
   color: var(--muted);
   text-transform: uppercase;
 }
-.hdr-msg {
-  font-size: 15px;
+
+.home-msg {
+  font-size: 20px;
   color: var(--soft);
-  margin-top: 8px;
-  min-height: 20px;
-  transition: color 0.4s;
+  text-align: center;
+  margin-bottom: 32px;
+  line-height: 1.4;
+  min-height: 28px;
 }
 
 /* ── NAV ── */
@@ -459,12 +461,12 @@ nav button.active {
 
 <header>
   <div class="hdr-title">Presenze</div>
-  <div class="hdr-msg" id="hdr-msg">Buon lavoro amore mio!🤍</div>
 </header>
 
 <!-- ── HOME ── -->
 <div id="v-home" class="view active">
   <div class="home-center">
+    <div class="home-msg" id="hdr-msg">Buon lavoro amore mio!🤍</div>
     <button id="btn-main">ENTRA</button>
     <div class="in-corso-txt" id="in-corso-txt"></div>
   </div>
