@@ -2,10 +2,23 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Presenze">
 <title>Presenze</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* evita pull-to-refresh e bounce accidentali */
+html, body { overscroll-behavior: none; }
+
+/* elimina highlight blu al tap */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* elimina delay 300ms su tutti i bottoni e label */
+button, label, a { touch-action: manipulation; }
 
 :root {
   --bg:      #0d0d0d;
@@ -27,7 +40,7 @@ body {
 
 /* ── HEADER ── */
 header {
-  padding: 20px 20px 14px;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px 14px;
   border-bottom: 1px solid var(--border);
   text-align: center;
 }
@@ -55,6 +68,8 @@ nav {
   z-index: 50;
   max-width: 480px;
   margin: 0 auto;
+  /* safe area per iPhone con home bar */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 nav button {
   flex: 1;
@@ -67,6 +82,7 @@ nav button {
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.2s;
+  min-height: 50px;
 }
 nav button.active {
   color: var(--text);
@@ -75,7 +91,7 @@ nav button.active {
 }
 
 /* ── VIEWS ── */
-.view { display: none; padding: 0 20px 90px; }
+.view { display: none; padding: 0 20px calc(80px + env(safe-area-inset-bottom)); }
 .view.active { display: block; }
 
 /* ── HOME ── */
@@ -99,7 +115,6 @@ nav button.active {
   cursor: pointer;
   transition: all 0.15s;
   outline: none;
-  -webkit-tap-highlight-color: transparent;
 }
 #btn-main:active { transform: scale(0.95); }
 #btn-main.esci   { border-color: var(--muted); color: var(--muted); }
@@ -259,9 +274,10 @@ nav button.active {
   border-top: 1px solid var(--border);
   width: 100%;
   max-width: 480px;
-  padding: 22px 20px 28px;
+  padding: 22px 20px calc(28px + env(safe-area-inset-bottom));
   max-height: 88vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .sheet-top {
   display: flex;
@@ -297,8 +313,8 @@ nav button.active {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 12px;
+  font-size: 16px; /* min 16px evita zoom automatico su iOS */
   font-family: inherit;
   outline: none;
   border-radius: 0;
