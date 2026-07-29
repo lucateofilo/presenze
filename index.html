@@ -1057,9 +1057,10 @@ function refreshCal() {
           + '<div class="cal-bar-r" style="width:' + ((1 - pct) * 100).toFixed(1) + '%"></div>'
           + '</div>';
     }
+    const special = ds.slice(5) === '05-11' ? '🌷' : ds.slice(8) === '23' ? '🤍' : '';
     html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDay(\'' + ds + '\')">'
           + '<span class="cn">' + d + '</span>'
-          + (min > 0 ? '<span class="ch">' + fmtH(min) + '</span>' : '')
+          + (special ? '<span style="font-size:10px;line-height:1">' + special + '</span>' : (min > 0 ? '<span class="ch">' + fmtH(min) + '</span>' : ''))
           + bar
           + '</div>';
   }
@@ -1288,10 +1289,11 @@ function refreshDiaryCal() {
     const ds  = prefix + '-' + String(d).padStart(2, '0');
     const txt = diary[ds] ? diary[ds].trim() : '';
     const cls = ['cal-cell', 'cal-day', txt && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
+    const dSpecial = ds.slice(5) === '05-11' ? '🌷' : ds.slice(8) === '23' ? '🤍' : '';
     const dot = txt ? '<span style="width:4px;height:4px;border-radius:50%;background:var(--soft);margin-top:4px;display:block"></span>' : '';
     html += '<div class="' + cls + '" style="cursor:pointer" onclick="openDiaryDay('' + ds + '')">'
           + '<span class="cn">' + d + '</span>'
-          + dot
+          + (dSpecial ? '<span style="font-size:10px;line-height:1">' + dSpecial + '</span>' : dot)
           + '</div>';
   }
   document.getElementById('diary-grid').innerHTML = html;
