@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Presenze</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0d0d0d;
+  --surface: #111;
+  --border:  #1f1f1f;
+  --muted:   #444;
+  --soft:    #666;
+  --text:    #fff;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.hdr-title {
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.hdr-msg {
+  font-size: 13px;
+  color: var(--soft);
+  margin-top: 6px;
+  min-height: 18px;
+  transition: color 0.4s;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  max-width: 480px;
+  margin: 0 auto;
+}
+nav button {
+  flex: 1;
+  padding: 15px;
+  background: none;
+  border: none;
+  color: var(--soft);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+nav button.active {
+  color: var(--text);
+  border-top: 1px solid var(--text);
+  margin-top: -1px;
+}
+
+/* ── VIEWS ── */
+.view { display: none; padding: 0 20px 90px; }
+.view.active { display: block; }
+
+/* ── HOME ── */
+.home-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 52px;
+}
+
+#btn-main {
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--text);
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#btn-main:active { transform: scale(0.95); }
+#btn-main.esci   { border-color: var(--muted); color: var(--muted); }
+
+.sito-pills {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+.sito-pills input[type=radio] { display: none; }
+.sito-pills label {
+  padding: 8px 26px;
+  border: 1px solid var(--border);
+  color: var(--soft);
+  font-size: 11px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.sito-pills input:checked + label {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.in-corso-txt {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--soft);
+  letter-spacing: 0.5px;
+  min-height: 16px;
+  text-align: center;
+}
+
+#btn-paga {
+  display: block;
+  margin: 44px auto 0;
+  padding: 12px 44px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--soft);
+  font-size: 11px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+#btn-paga:hover { border-color: var(--muted); color: var(--text); }
+
+/* ── REGISTRO ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--border);
+  margin-top: 24px;
+  margin-bottom: 28px;
+}
+.stat {
+  padding: 16px 8px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.stat:last-child { border-right: none; }
+.stat-lbl {
+  font-size: 10px;
+  color: var(--soft);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-val {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.cal-nav button {
+  background: none;
+  border: none;
+  color: var(--soft);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 14px;
+  line-height: 1;
+}
+.cal-nav span { font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-hdr {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 6px 0;
+  letter-spacing: 1px;
+}
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  font-size: 12px;
+  padding: 2px;
+  cursor: default;
+  transition: background 0.1s;
+}
+.cal-cell.today   { border-color: var(--muted); }
+.cal-cell.has-data {
+  background: #161616;
+  border-color: var(--border);
+  cursor: pointer;
+}
+.cal-cell.has-data:hover { background: #1e1e1e; }
+.cal-cell .cn { font-size: 13px; }
+.cal-cell .ch { font-size: 10px; color: var(--soft); margin-top: 2px; }
+
+#btn-export {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--soft);
+  font-size: 11px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+#btn-export:hover { border-color: var(--muted); color: var(--text); }
+
+/* ── OVERLAYS ── */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+}
+.overlay.open { display: flex; }
+
+.sheet {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  width: 100%;
+  max-width: 480px;
+  padding: 22px 20px 28px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.sheet-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.sheet-top h2 { font-size: 14px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--soft);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+/* form elements */
+.fg { margin-bottom: 14px; }
+.fg > label {
+  display: block;
+  font-size: 10px;
+  color: var(--soft);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.fg input[type=time],
+.fg input[type=number],
+.fg textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  border-radius: 0;
+  -webkit-appearance: none;
+}
+.fg input:focus, .fg textarea:focus { border-color: var(--muted); }
+.fg textarea { resize: none; height: 58px; }
+
+.radio2 { display: flex; gap: 8px; }
+.radio2 input[type=radio] { display: none; }
+.radio2 label {
+  flex: 1;
+  border: 1px solid var(--border);
+  color: var(--soft);
+  text-align: center;
+  padding: 10px 8px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  user-select: none;
+}
+.radio2 input:checked + label { border-color: var(--muted); color: var(--text); }
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.check-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--text); flex-shrink: 0; }
+.check-row label { font-size: 12px; color: var(--soft); cursor: pointer; letter-spacing: 0.5px; }
+
+.timb-card { border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+.timb-lbl  { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
+
+.cb-list { max-height: 200px; overflow-y: auto; }
+.cb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #161616;
+}
+.cb-item input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--text); flex-shrink: 0; }
+.cb-item label { font-size: 13px; color: var(--soft); cursor: pointer; line-height: 1.4; }
+
+.btn-cta {
+  width: 100%;
+  padding: 14px;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 20px;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.btn-cta:hover { background: #ddd; }
+
+.btn-del {
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: 1px solid #2a2a2a;
+  color: var(--soft);
+  font-size: 11px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  margin-top: 8px;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.btn-del:hover { border-color: var(--muted); color: var(--text); }
+
+.empty-note { font-size: 13px; color: var(--muted); padding: 10px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-title">Presenze</div>
+  <div class="hdr-msg" id="hdr-msg">Buon lavoro amore mio!🤍</div>
+</header>
+
+<!-- ── HOME ── -->
+<div id="v-home" class="view active">
+  <div class="home-center">
+    <button id="btn-main">ENTRA</button>
+
+    <div class="sito-pills" id="sito-pills">
+      <input type="radio" name="h-sito" id="hs-b" value="B">
+      <label for="hs-b">SITO</label>
+      <input type="radio" name="h-sito" id="hs-n" value="N">
+      <label for="hs-n">POSTO</label>
+    </div>
+
+    <div class="in-corso-txt" id="in-corso-txt"></div>
+  </div>
+
+  <button id="btn-paga">PAGA</button>
+</div>
+
+<!-- ── REGISTRO ── -->
+<div id="v-reg" class="view">
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-lbl">Oggi</div>
+      <div class="stat-val" id="s-oggi">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">Settimana</div>
+      <div class="stat-val" id="s-sett">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">Mese</div>
+      <div class="stat-val" id="s-mese">—</div>
+    </div>
+  </div>
+
+  <div class="cal-nav">
+    <button id="c-prev">‹</button>
+    <span id="c-label"></span>
+    <button id="c-next">›</button>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+
+  <button id="btn-export">↓ Esporta Excel</button>
+</div>
+
+<nav>
+  <button class="active" data-view="home">HOME</button>
+  <button data-view="reg">REGISTRO</button>
+</nav>
+
+<!-- ── MODAL: giorno ── -->
+<div class="overlay" id="ov-day">
+  <div class="sheet">
+    <div class="sheet-top">
+      <h2 id="day-title"></h2>
+      <button class="btn-close" data-close="ov-day">×</button>
+    </div>
+    <div id="day-body"></div>
+  </div>
+</div>
+
+<!-- ── MODAL: paga ── -->
+<div class="overlay" id="ov-paga">
+  <div class="sheet">
+    <div class="sheet-top">
+      <h2>Pagamento</h2>
+      <button class="btn-close" data-close="ov-paga">×</button>
+    </div>
+
+    <div class="fg">
+      <label>Sito</label>
+      <div class="radio2">
+        <input type="radio" name="ps" id="ps-b" value="B">
+        <label for="ps-b">SITO</label>
+        <input type="radio" name="ps" id="ps-n" value="N">
+        <label for="ps-n">POSTO</label>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>Importo (€)</label>
+      <input type="number" id="p-imp" step="0.01" min="0" placeholder="0.00">
+    </div>
+
+    <div class="fg">
+      <label>Giorni da segnare come pagati</label>
+      <div class="cb-list" id="p-list"></div>
+    </div>
+
+    <button class="btn-cta" id="btn-salva-paga">Segna come pagati</button>
+  </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script>
+'use strict';
+
+/* ── Storage ────────────────────────────────────── */
+const REC_KEY = 'pr_records';
+const STA_KEY = 'pr_stato';
+
+function getRecs()      { return JSON.parse(localStorage.getItem(REC_KEY) || '[]'); }
+function saveRecs(r)    { localStorage.setItem(REC_KEY, JSON.stringify(r)); }
+function getStato()     { return JSON.parse(localStorage.getItem(STA_KEY) || 'null'); }
+function saveStato(s)   { s == null ? localStorage.removeItem(STA_KEY) : localStorage.setItem(STA_KEY, JSON.stringify(s)); }
+
+/* ── Utils ──────────────────────────────────────── */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function tsToHM(ts) {
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function hmToTs(dateStr, hm) {
+  const [h, m] = hm.split(':').map(Number);
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
+
+function recMin(r) {
+  return (r.uscita_ts && r.entrata_ts) ? (r.uscita_ts - r.entrata_ts) / 60000 : 0;
+}
+
+function fmtH(min) {
+  if (!min || min <= 0) return '—';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return m ? h + 'h' + String(m).padStart(2,'0') : h + 'h';
+}
+
+function mondayOf(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function sitoLabel(s) {
+  return s === 'B' ? 'Sito' : s === 'N' ? 'Posto' : '';
+}
+
+const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+/* ── Overlays ───────────────────────────────────── */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+
+/* ── Nav ────────────────────────────────────────── */
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('v-' + btn.dataset.view).classList.add('active');
+    if (btn.dataset.view === 'reg') { refreshStats(); refreshCal(); }
+  });
+});
+
+/* ── HOME: main button ──────────────────────────── */
+const btnMain      = document.getElementById('btn-main');
+const sitoP        = document.getElementById('sito-pills');
+const inCorsoTxt   = document.getElementById('in-corso-txt');
+const hdrMsg       = document.getElementById('hdr-msg');
+
+function refreshHome() {
+  const s = getStato();
+  if (s) {
+    btnMain.textContent = 'ESCI';
+    btnMain.classList.add('esci');
+    sitoP.style.display = 'none';
+    const lbl = sitoLabel(s.sito);
+    inCorsoTxt.textContent = 'In corso dalle ' + tsToHM(s.ts) + (lbl ? ' · ' + lbl : '');
+  } else {
+    btnMain.textContent = 'ENTRA';
+    btnMain.classList.remove('esci');
+    sitoP.style.display = 'flex';
+    inCorsoTxt.textContent = '';
+  }
+}
+
+btnMain.addEventListener('click', () => {
+  const s = getStato();
+  if (!s) {
+    const sito = (document.querySelector('input[name="h-sito"]:checked') || {}).value || '';
+    saveStato({ ts: Date.now(), data: todayStr(), sito });
+    hdrMsg.textContent = 'Buon lavoro amore mio!🤍';
+  } else {
+    const all = getRecs();
+    all.push({
+      id:         uid(),
+      data:       s.data,
+      entrata:    tsToHM(s.ts),
+      uscita:     tsToHM(Date.now()),
+      entrata_ts: s.ts,
+      uscita_ts:  Date.now(),
+      sito:       s.sito || '',
+      nota:       '',
+      pagato:     false,
+      importo:    0
+    });
+    saveRecs(all);
+    saveStato(null);
+    hdrMsg.textContent = 'Sei stata bravissima, come al solito!🤍';
+    refreshStats();
+    refreshCal();
+  }
+  refreshHome();
+});
+
+/* ── REGISTRO: stats ────────────────────────────── */
+function refreshStats() {
+  const all  = getRecs();
+  const t    = todayStr();
+  const mon  = mondayOf(t);
+  const ym   = t.slice(0, 7);
+
+  const sum = fn => all.filter(fn).reduce((a, r) => a + recMin(r), 0);
+
+  document.getElementById('s-oggi').textContent = fmtH(sum(r => r.data === t));
+
+  const monTs  = new Date(mon + 'T00:00:00').getTime();
+  const sunTs  = monTs + 7 * 86400000;
+  document.getElementById('s-sett').textContent = fmtH(sum(r => {
+    const d = new Date(r.data + 'T12:00:00').getTime();
+    return d >= monTs && d < sunTs;
+  }));
+
+  document.getElementById('s-mese').textContent = fmtH(sum(r => r.data.startsWith(ym)));
+}
+
+/* ── REGISTRO: calendario ───────────────────────── */
+let calY, calM;
+(function() { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth(); })();
+
+function refreshCal() {
+  document.getElementById('c-label').textContent = MONTHS[calM] + ' ' + calY;
+
+  const all    = getRecs();
+  const t      = todayStr();
+  const prefix = calY + '-' + String(calM + 1).padStart(2, '0');
+  const days   = new Date(calY, calM + 1, 0).getDate();
+  let   offset = new Date(calY, calM, 1).getDay(); // 0=dom
+  offset = offset === 0 ? 6 : offset - 1;          // 0=lun
+
+  // ore per giorno
+  const hMap = {};
+  all.forEach(r => {
+    if (r.data.startsWith(prefix)) hMap[r.data] = (hMap[r.data] || 0) + recMin(r);
+  });
+
+  const DNAMES = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+  let html = DNAMES.map(d => '<div class="cal-hdr">' + d + '</div>').join('');
+  for (let i = 0; i < offset; i++) html += '<div class="cal-cell"></div>';
+
+  for (let d = 1; d <= days; d++) {
+    const ds  = prefix + '-' + String(d).padStart(2, '0');
+    const min = hMap[ds] || 0;
+    const cls = ['cal-cell', min > 0 && 'has-data', ds === t && 'today'].filter(Boolean).join(' ');
+    const clk = min > 0 ? 'onclick="openDay(\'' + ds + '\')"' : '';
+    html += '<div class="' + cls + '" ' + clk + '>'
+          + '<span class="cn">' + d + '</span>'
+          + (min > 0 ? '<span class="ch">' + fmtH(min) + '</span>' : '')
+          + '</div>';
+  }
+
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+document.getElementById('c-prev').addEventListener('click', () => {
+  calM--; if (calM < 0) { calM = 11; calY--; } refreshCal();
+});
+document.getElementById('c-next').addEventListener('click', () => {
+  calM++; if (calM > 11) { calM = 0; calY++; } refreshCal();
+});
+
+/* ── MODAL: giorno ──────────────────────────────── */
+let currentDay = null;
+
+function openDay(ds) {
+  currentDay = ds;
+  const d = new Date(ds + 'T12:00:00');
+  document.getElementById('day-title').textContent = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  renderDayBody(ds);
+  openModal('ov-day');
+}
+
+function renderDayBody(ds) {
+  const list = getRecs().filter(r => r.data === ds);
+
+  if (!list.length) {
+    document.getElementById('day-body').innerHTML = '<p class="empty-note">Nessuna timbratura per questo giorno.</p>';
+    return;
+  }
+
+  const html = list.map((r, i) => {
+    const lbl = sitoLabel(r.sito);
+    return '<div class="timb-card">'
+      + '<div class="timb-lbl">Timbratura ' + (i + 1) + (lbl ? ' &nbsp;·&nbsp; ' + lbl : '') + '</div>'
+
+      + '<div class="fg"><label>Entrata</label>'
+      + '<input type="time" value="' + r.entrata + '" onchange="patchRec(\'' + r.id + '\',\'entrata\',this.value)"></div>'
+
+      + '<div class="fg"><label>Uscita</label>'
+      + '<input type="time" value="' + (r.uscita || '') + '" onchange="patchRec(\'' + r.id + '\',\'uscita\',this.value)"></div>'
+
+      + '<div class="fg"><label>Sito</label><div class="radio2">'
+      + '<input type="radio" name="ds-' + r.id + '" id="dsB-' + r.id + '" value="B"' + (r.sito === 'B' ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'sito\',\'B\')">'
+      + '<label for="dsB-' + r.id + '">SITO</label>'
+      + '<input type="radio" name="ds-' + r.id + '" id="dsN-' + r.id + '" value="N"' + (r.sito === 'N' ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'sito\',\'N\')">'
+      + '<label for="dsN-' + r.id + '">POSTO</label>'
+      + '</div></div>'
+
+      + '<div class="fg"><label>Note</label>'
+      + '<textarea onchange="patchRec(\'' + r.id + '\',\'nota\',this.value)">' + (r.nota || '') + '</textarea></div>'
+
+      + '<div class="check-row">'
+      + '<input type="checkbox" id="chk-' + r.id + '"' + (r.pagato ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'pagato\',this.checked)">'
+      + '<label for="chk-' + r.id + '">PAGATO</label></div>'
+
+      + (r.pagato
+          ? '<div class="fg" style="margin-top:10px;"><label>Importo (€)</label>'
+          + '<input type="number" step="0.01" min="0" value="' + (r.importo || 0) + '" onchange="patchRec(\'' + r.id + '\',\'importo\',parseFloat(this.value)||0)"></div>'
+          : '')
+
+      + '<button class="btn-del" onclick="delRec(\'' + r.id + '\')">Elimina timbratura</button>'
+      + '</div>';
+  }).join('');
+
+  document.getElementById('day-body').innerHTML = html;
+}
+
+function patchRec(id, field, value) {
+  const all = getRecs();
+  const r   = all.find(r => r.id === id);
+  if (!r) return;
+  r[field] = value;
+  if (field === 'entrata') r.entrata_ts = hmToTs(r.data, value);
+  if (field === 'uscita')  r.uscita_ts  = hmToTs(r.data, value);
+  saveRecs(all);
+  if (field === 'pagato') renderDayBody(currentDay); // mostra/nasconde campo importo
+  refreshStats();
+  refreshCal();
+}
+
+function delRec(id) {
+  if (!confirm('Eliminare questa timbratura?')) return;
+  saveRecs(getRecs().filter(r => r.id !== id));
+  renderDayBody(currentDay);
+  refreshStats();
+  refreshCal();
+}
+
+/* ── MODAL: paga ────────────────────────────────── */
+document.getElementById('btn-paga').addEventListener('click', () => {
+  const nonPag = getRecs()
+    .filter(r => !r.pagato && r.uscita_ts)
+    .sort((a, b) => a.data.localeCompare(b.data));
+
+  document.getElementById('p-list').innerHTML = nonPag.length
+    ? nonPag.map(r => {
+        const lbl = sitoLabel(r.sito);
+        return '<div class="cb-item">'
+          + '<input type="checkbox" id="pp-' + r.id + '" value="' + r.id + '">'
+          + '<label for="pp-' + r.id + '">' + r.data + ' &nbsp; ' + r.entrata + '→' + (r.uscita || '?') + ' &nbsp; (' + fmtH(recMin(r)) + ')' + (lbl ? ' &nbsp;[' + lbl + ']' : '') + '</label>'
+          + '</div>';
+      }).join('')
+    : '<p class="empty-note">Tutti i giorni sono già pagati.</p>';
+
+  openModal('ov-paga');
+});
+
+document.getElementById('btn-salva-paga').addEventListener('click', () => {
+  const sitoEl  = document.querySelector('input[name="ps"]:checked');
+  const sito    = sitoEl ? sitoEl.value : '';
+  const importo = parseFloat(document.getElementById('p-imp').value) || 0;
+  const ids     = Array.from(document.querySelectorAll('#p-list input[type=checkbox]:checked')).map(i => i.value);
+
+  if (!ids.length) { alert('Seleziona almeno un giorno.'); return; }
+
+  const all = getRecs();
+  ids.forEach(id => {
+    const r = all.find(r => r.id === id);
+    if (r) { r.pagato = true; r.importo = importo; if (sito) r.sito = sito; }
+  });
+  saveRecs(all);
+  closeModal('ov-paga');
+  refreshCal();
+});
+
+/* ── EXPORT Excel ───────────────────────────────── */
+document.getElementById('btn-export').addEventListener('click', () => {
+  const all = getRecs();
+  if (!all.length) { alert('Nessun dato da esportare.'); return; }
+
+  const rows = [...all]
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .map(r => {
+      const min = recMin(r);
+      const h   = Math.floor(min / 60);
+      const m   = Math.round(min % 60);
+      return {
+        'Data':          r.data,
+        'Entrata':       r.entrata,
+        'Uscita':        r.uscita || '',
+        'Ore':           min ? h + ':' + String(m).padStart(2,'0') : '',
+        'Ore (decimali)': min ? +(min / 60).toFixed(2) : '',
+        'Sito':          sitoLabel(r.sito),
+        'Nota':          r.nota || '',
+        'Pagato':        r.pagato ? 'Sì' : 'No',
+        'Importo €':     r.importo || ''
+      };
+    });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [12, 8, 8, 8, 14, 8, 22, 8, 10].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Presenze');
+  XLSX.writeFile(wb, 'presenze_' + todayStr() + '.xlsx');
+});
+
+/* ── Init ───────────────────────────────────────── */
+refreshHome();
+refreshStats();
+refreshCal();
+</script>
+</body>
+</html>
