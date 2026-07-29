@@ -119,26 +119,6 @@ nav button.active {
 #btn-main:active { transform: scale(0.95); }
 #btn-main.esci   { border-color: var(--muted); color: var(--muted); }
 
-.sito-pills {
-  display: flex;
-  gap: 10px;
-  margin-top: 28px;
-}
-.sito-pills input[type=radio] { display: none; }
-.sito-pills label {
-  padding: 8px 26px;
-  border: 1px solid var(--border);
-  color: var(--soft);
-  font-size: 11px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.15s;
-  user-select: none;
-}
-.sito-pills input:checked + label {
-  border-color: var(--muted);
-  color: var(--text);
-}
 
 .in-corso-txt {
   margin-top: 16px;
@@ -409,13 +389,6 @@ nav button.active {
   <div class="home-center">
     <button id="btn-main">ENTRA</button>
 
-    <div class="sito-pills" id="sito-pills">
-      <input type="radio" name="h-sito" id="hs-b" value="B">
-      <label for="hs-b">SITO</label>
-      <input type="radio" name="h-sito" id="hs-n" value="N">
-      <label for="hs-n">POSTO</label>
-    </div>
-
     <div class="in-corso-txt" id="in-corso-txt"></div>
   </div>
 
@@ -479,7 +452,7 @@ nav button.active {
         <input type="radio" name="ps" id="ps-b" value="B">
         <label for="ps-b">SITO</label>
         <input type="radio" name="ps" id="ps-n" value="N">
-        <label for="ps-n">POSTO</label>
+        <label for="ps-n">SEDE</label>
       </div>
     </div>
 
@@ -546,7 +519,7 @@ function mondayOf(dateStr) {
 }
 
 function sitoLabel(s) {
-  return s === 'B' ? 'Sito' : s === 'N' ? 'Posto' : '';
+  return s === 'B' ? 'Sito' : s === 'N' ? 'Sede' : '';
 }
 
 const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
@@ -576,7 +549,6 @@ document.querySelectorAll('nav button').forEach(btn => {
 
 /* ── HOME: main button ──────────────────────────── */
 const btnMain      = document.getElementById('btn-main');
-const sitoP        = document.getElementById('sito-pills');
 const inCorsoTxt   = document.getElementById('in-corso-txt');
 const hdrMsg       = document.getElementById('hdr-msg');
 
@@ -585,13 +557,10 @@ function refreshHome() {
   if (s) {
     btnMain.textContent = 'ESCI';
     btnMain.classList.add('esci');
-    sitoP.style.display = 'none';
-    const lbl = sitoLabel(s.sito);
-    inCorsoTxt.textContent = 'In corso dalle ' + tsToHM(s.ts) + (lbl ? ' · ' + lbl : '');
+    inCorsoTxt.textContent = 'In corso dalle ' + tsToHM(s.ts);
   } else {
     btnMain.textContent = 'ENTRA';
     btnMain.classList.remove('esci');
-    sitoP.style.display = 'flex';
     inCorsoTxt.textContent = '';
   }
 }
@@ -599,8 +568,7 @@ function refreshHome() {
 btnMain.addEventListener('click', () => {
   const s = getStato();
   if (!s) {
-    const sito = (document.querySelector('input[name="h-sito"]:checked') || {}).value || '';
-    saveStato({ ts: Date.now(), data: todayStr(), sito });
+    saveStato({ ts: Date.now(), data: todayStr(), sito: '' });
     hdrMsg.textContent = 'Buon lavoro amore mio!🤍';
   } else {
     const all = getRecs();
@@ -725,7 +693,7 @@ function renderDayBody(ds) {
       + '<input type="radio" name="ds-' + r.id + '" id="dsB-' + r.id + '" value="B"' + (r.sito === 'B' ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'sito\',\'B\')">'
       + '<label for="dsB-' + r.id + '">SITO</label>'
       + '<input type="radio" name="ds-' + r.id + '" id="dsN-' + r.id + '" value="N"' + (r.sito === 'N' ? ' checked' : '') + ' onchange="patchRec(\'' + r.id + '\',\'sito\',\'N\')">'
-      + '<label for="dsN-' + r.id + '">POSTO</label>'
+      + '<label for="dsN-' + r.id + '">SEDE</label>'
       + '</div></div>'
 
       + '<div class="fg"><label>Note</label>'
