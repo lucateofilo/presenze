@@ -193,13 +193,13 @@ nav button.active {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: splashFade 0.45s ease 0.95s forwards;
+  animation: splashFade 0.8s ease 2.8s forwards;
 }
 #splash-heart {
   width: 80px;
   height: 80px;
   fill: var(--text);
-  animation: heartGrow 0.95s cubic-bezier(0.2, 0, 0.6, 1) forwards;
+  animation: heartGrow 2.8s cubic-bezier(0.2, 0, 0.6, 1) forwards;
 }
 @keyframes heartGrow {
   0%   { transform: scale(0.1); opacity: 0; }
@@ -910,7 +910,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
 refreshHome();
 refreshStats();
 refreshCal();
-setTimeout(() => document.getElementById('splash').remove(), 1450);
+setTimeout(() => document.getElementById('splash').remove(), 3700);
 </script>
 </body>
 </html>
