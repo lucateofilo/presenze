@@ -228,7 +228,19 @@ nav button.active {
   grid-template-columns: repeat(3, 1fr);
   border: 1px solid var(--border);
   margin-top: 24px;
-  margin-bottom: 28px;
+  margin-bottom: 0;
+}
+.anno-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-top: none;
+  margin-bottom: 20px;
+  font-size: 11px;
+  color: var(--soft);
+  letter-spacing: 0.5px;
 }
 .stat {
   padding: 16px 8px;
@@ -667,6 +679,11 @@ nav button.active {
       <div class="stat-val" id="s-mese">—</div>
     </div>
   </div>
+  <div class="anno-row">
+    <span id="s-anno-lbl">Anno</span>
+    <span id="s-anno-val">—</span>
+    <span id="s-anno-eur"></span>
+  </div>
 
   <div class="totali-grid">
     <div class="totale-box">
@@ -1084,6 +1101,24 @@ function refreshStats() {
     setBar('box1-bar', pct);
     setBar('box2-bar', 1 - pct);
   }
+
+  // riepilogo annuale
+  const anno = t.slice(0, 4);
+  const inAnno = r => r.data.startsWith(anno);
+  document.getElementById('s-anno-lbl').textContent = 'Anno ' + anno;
+  if (cfg.metodo === 1) {
+    const minA = all.filter(inAnno).reduce((a, r) => a + recMin(r), 0);
+    const eurA = all.filter(r => inAnno(r) && r.pagato).reduce((a, r) => a + (r.importo || 0), 0);
+    document.getElementById('s-anno-val').textContent = minA > 0 ? fmtH(minA) : '—';
+    document.getElementById('s-anno-eur').textContent = eurA > 0 ? '€ ' + eurA.toFixed(2) : '';
+  } else {
+    const ggA = cfg.metodo === 2
+      ? all.filter(r => inAnno(r) && r.uscita_ts).length
+      : all.filter(inAnno).length;
+    const eurA = all.filter(r => inAnno(r) && r.pagato).reduce((a, r) => a + (r.importo || 0), 0);
+    document.getElementById('s-anno-val').textContent = ggA > 0 ? ggA + ' gg' : '—';
+    document.getElementById('s-anno-eur').textContent = eurA > 0 ? '€ ' + eurA.toFixed(2) : '';
+  }
 }
 
 
@@ -1171,7 +1206,7 @@ function openDay(ds) {
 }
 
 function renderDayBody(ds) {
-  const list = getRecs().filter(r => r.data === ds);
+  const list = getRecs().filter(r => r.data === ds).sort((a, b) => a.entrata_ts - b.entrata_ts);
 
   const addBtn = '<button class="btn-add" onclick="addTimbratura(\'' + ds + '\')">+ Aggiungi timbratura</button>';
 
