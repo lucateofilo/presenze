@@ -727,7 +727,6 @@ nav button.active {
 </div>
 
 
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
 'use strict';
 
@@ -1314,7 +1313,17 @@ function openDiaryDay(ds) {
   openModal('ov-diary-day');
 }
 
+function withXLSX(cb) {
+  if (window.XLSX) { cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+  s.onload = cb;
+  s.onerror = () => alert('Impossibile caricare la libreria Excel. Controlla la connessione.');
+  document.head.appendChild(s);
+}
+
 function exportAll() {
+  withXLSX(() => {
   const all   = getRecs();
   const diary = getDiary();
   const wb    = XLSX.utils.book_new();
@@ -1351,6 +1360,7 @@ function exportAll() {
   localStorage.setItem(DEXPORT_KEY, Date.now().toString());
   checkDiaryBanner();
   showToast('Backup esportato');
+  });
 }
 
 document.getElementById('d-prev').addEventListener('click', () => {
