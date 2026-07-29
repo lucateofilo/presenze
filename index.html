@@ -1159,7 +1159,7 @@ function refreshCal() {
     } else if (cfg3 && presMap[ds]) {
       bar = '<div class="cal-bar"><div class="cal-bar-r" style="width:100%"></div></div>';
     }
-    const special = ds.slice(5) === '05-11' ? '🌷' : ds.slice(8) === '23' ? '🤍' : '';
+    const special = ds.slice(5) === '05-11' ? '🌷' : ds.slice(5) === '06-23' ? '🪨🤍' : ds.slice(8) === '23' ? '🤍' : '';
     const cnt     = cntMap[ds] || 0;
     let oreLabel = '';
     if (min > 0) {
