@@ -1408,10 +1408,10 @@ function confirmTimbratura(ds) {
 
 
 /* ── Init ───────────────────────────────────────── */
-refreshHome();
-refreshStats();
-refreshCal();
-setTimeout(() => document.getElementById('splash').remove(), 2500);
+try { refreshHome(); } catch(e) { alert('ERR refreshHome: ' + e.message); }
+try { refreshStats(); } catch(e) { alert('ERR refreshStats: ' + e.message); }
+try { refreshCal(); } catch(e) { alert('ERR refreshCal: ' + e.message); }
+setTimeout(() => { const s = document.getElementById('splash'); if(s) s.remove(); }, 2500);
 </script>
 </body>
 </html>
