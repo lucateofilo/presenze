@@ -522,17 +522,14 @@ nav button.active {
     <div class="stat">
       <div class="stat-lbl">Oggi</div>
       <div class="stat-val" id="s-oggi">—</div>
-      <div class="cal-bar" id="bar-oggi"><div class="cal-bar-g" id="bar-oggi-g"></div><div class="cal-bar-r" id="bar-oggi-r"></div></div>
     </div>
     <div class="stat">
       <div class="stat-lbl">Settimana</div>
       <div class="stat-val" id="s-sett">—</div>
-      <div class="cal-bar" id="bar-sett"><div class="cal-bar-g" id="bar-sett-g"></div><div class="cal-bar-r" id="bar-sett-r"></div></div>
     </div>
     <div class="stat">
       <div class="stat-lbl">Mese</div>
       <div class="stat-val" id="s-mese">—</div>
-      <div class="cal-bar" id="bar-mese"><div class="cal-bar-g" id="bar-mese-g"></div><div class="cal-bar-r" id="bar-mese-r"></div></div>
     </div>
   </div>
 
@@ -541,15 +538,18 @@ nav button.active {
       <div class="totale-lbl">Pagato · Sito</div>
       <div class="totale-ore" id="s-pag-B-ore">—</div>
       <div class="totale-eur" id="s-pag-B-eur">—</div>
+      <div class="cal-bar"><div class="cal-bar-g" id="bar-pag-B" style="width:0%"></div><div class="cal-bar-r" id="bar-npag-B" style="width:100%"></div></div>
     </div>
     <div class="totale-box">
       <div class="totale-lbl">Pagato · Sede</div>
       <div class="totale-ore" id="s-pag-N-ore">—</div>
       <div class="totale-eur" id="s-pag-N-eur">—</div>
+      <div class="cal-bar"><div class="cal-bar-g" id="bar-pag-N" style="width:0%"></div><div class="cal-bar-r" id="bar-npag-N" style="width:100%"></div></div>
     </div>
     <div class="totale-box totale-full">
       <div class="totale-lbl">Da pagare</div>
       <div class="totale-ore" id="s-nonpag-ore">—</div>
+      <div class="cal-bar"><div class="cal-bar-g" id="bar-pag-tot" style="width:0%"></div><div class="cal-bar-r" id="bar-npag-tot" style="width:100%"></div></div>
     </div>
   </div>
 
@@ -755,31 +755,25 @@ function refreshStats() {
 
   document.getElementById('s-mese').textContent = fmtH(sum(r => r.data.startsWith(ym)));
 
-  // barre pagato/totale per ogni periodo
-  function setBar(prefix, totMin, pagMin) {
-    const pct = totMin > 0 ? Math.min(pagMin / totMin, 1) : 0;
-    document.getElementById('bar-' + prefix + '-g').style.width = (pct * 100).toFixed(1) + '%';
-    document.getElementById('bar-' + prefix + '-r').style.width = ((1 - pct) * 100).toFixed(1) + '%';
-  }
-  function pagMin(fn) {
-    return all.filter(fn).reduce((a, r) => a + (r.pagato ? recMin(r) : (r.ore_pagate || 0)), 0);
-  }
-  setBar('oggi', sum(r => r.data === t),          pagMin(r => r.data === t));
-  setBar('sett', sum(r => { const d = new Date(r.data+'T12:00:00').getTime(); return d>=monTs&&d<sunTs; }),
-                 pagMin(r => { const d = new Date(r.data+'T12:00:00').getTime(); return d>=monTs&&d<sunTs; }));
-  setBar('mese', sum(r => r.data.startsWith(ym)), pagMin(r => r.data.startsWith(ym)));
-
   ['B','N'].forEach(k => {
     const pag    = all.filter(r =>  r.pagato && r.uscita_ts && r.sito === k);
     const nonPag = all.filter(r => !r.pagato && r.uscita_ts && r.sito === k);
     const pagMin = pag.reduce((a, r) => a + recMin(r), 0);
     const pagEur = pag.reduce((a, r) => a + (r.importo || 0), 0);
-    const npMin  = nonPag.reduce((a, r) => a + recMin(r), 0);
+    const npMin  = nonPag.reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0);
+    const totK   = pagMin + npMin;
+    const pctK   = totK > 0 ? pagMin / totK : 0;
     document.getElementById('s-pag-'    + k + '-ore').textContent = fmtH(pagMin);
     document.getElementById('s-pag-'    + k + '-eur').textContent = pagEur > 0 ? '\u20ac ' + pagEur.toFixed(2) : '\u2014';
+    document.getElementById('bar-pag-'  + k).style.width  = (pctK * 100).toFixed(1) + '%';
+    document.getElementById('bar-npag-' + k).style.width  = ((1 - pctK) * 100).toFixed(1) + '%';
   });
-  const npTot = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0);
-  document.getElementById('s-nonpag-ore').textContent = fmtH(npTot);
+  const totPag  = all.filter(r =>  r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r), 0);
+  const npTot   = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0);
+  const pctTot  = (totPag + npTot) > 0 ? totPag / (totPag + npTot) : 0;
+  document.getElementById('s-nonpag-ore').textContent    = fmtH(npTot);
+  document.getElementById('bar-pag-tot').style.width     = (pctTot * 100).toFixed(1) + '%';
+  document.getElementById('bar-npag-tot').style.width    = ((1 - pctTot) * 100).toFixed(1) + '%';
 
 }
 
