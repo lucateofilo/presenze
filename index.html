@@ -42,8 +42,27 @@ body {
 header {
   padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px 14px;
   border-bottom: 1px solid var(--border);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
+#btn-gear {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--soft);
+  transition: color 0.2s;
+  line-height: 0;
+}
+#btn-gear:hover { color: var(--text); }
+#btn-gear.active { color: var(--text); }
+
 .hdr-title {
   font-size: 18px;
   letter-spacing: 6px;
@@ -492,6 +511,12 @@ nav button.active {
 
 <header>
   <div class="hdr-title">Presenze</div>
+  <button id="btn-gear" aria-label="Impostazioni">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
 </header>
 
 <!-- ── HOME ── -->
@@ -552,7 +577,6 @@ nav button.active {
 <nav>
   <button class="active" data-view="home">HOME</button>
   <button data-view="reg">REGISTRO</button>
-  <button data-view="set">IMPOSTAZIONI</button>
 </nav>
 
 <!-- ── IMPOSTAZIONI ── -->
@@ -702,11 +726,31 @@ document.querySelectorAll('nav button').forEach(btn => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('v-' + btn.dataset.view).classList.add('active');
+    document.getElementById('btn-gear').classList.remove('active');
     if (btn.dataset.view === 'reg') { refreshStats(); refreshCal(); }
-    if (btn.dataset.view === 'set') { initCfgForm(); }
   });
 });
 
+
+/* ── Gear button ─────────────────────────────────── */
+document.getElementById('btn-gear').addEventListener('click', () => {
+  const gear = document.getElementById('btn-gear');
+  const isSet = document.getElementById('v-set').classList.contains('active');
+  if (isSet) {
+    // torna a HOME
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('v-home').classList.add('active');
+    document.querySelector('nav button[data-view="home"]').classList.add('active');
+    gear.classList.remove('active');
+  } else {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('v-set').classList.add('active');
+    gear.classList.add('active');
+    initCfgForm();
+  }
+});
 
 /* ── IMPOSTAZIONI ─────────────────────────────────── */
 function initCfgForm() {
