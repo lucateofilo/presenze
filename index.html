@@ -295,7 +295,7 @@ nav button.active {
 .cal-cell.has-data:hover { background: #1e1e1e; }
 .cal-cell .cn { font-size: 13px; }
 .cal-cell .ch { font-size: 10px; color: var(--soft); margin-top: 2px; }
-.cal-bar { display: flex; width: 100%; height: 3px; margin-top: 3px; border-radius: 1px; overflow: hidden; }
+.cal-bar { display: flex; width: 100%; height: 3px; margin-top: 6px; border-radius: 1px; overflow: hidden; }
 .cal-bar-g { background: #2a5c24; height: 100%; }
 .cal-bar-r { background: #5c2424; height: 100%; }
 
@@ -522,14 +522,17 @@ nav button.active {
     <div class="stat">
       <div class="stat-lbl">Oggi</div>
       <div class="stat-val" id="s-oggi">—</div>
+      <div class="cal-bar" id="bar-oggi"><div class="cal-bar-g" id="bar-oggi-g"></div><div class="cal-bar-r" id="bar-oggi-r"></div></div>
     </div>
     <div class="stat">
       <div class="stat-lbl">Settimana</div>
       <div class="stat-val" id="s-sett">—</div>
+      <div class="cal-bar" id="bar-sett"><div class="cal-bar-g" id="bar-sett-g"></div><div class="cal-bar-r" id="bar-sett-r"></div></div>
     </div>
     <div class="stat">
       <div class="stat-lbl">Mese</div>
       <div class="stat-val" id="s-mese">—</div>
+      <div class="cal-bar" id="bar-mese"><div class="cal-bar-g" id="bar-mese-g"></div><div class="cal-bar-r" id="bar-mese-r"></div></div>
     </div>
   </div>
 
@@ -751,6 +754,20 @@ function refreshStats() {
   }));
 
   document.getElementById('s-mese').textContent = fmtH(sum(r => r.data.startsWith(ym)));
+
+  // barre pagato/totale per ogni periodo
+  function setBar(prefix, totMin, pagMin) {
+    const pct = totMin > 0 ? Math.min(pagMin / totMin, 1) : 0;
+    document.getElementById('bar-' + prefix + '-g').style.width = (pct * 100).toFixed(1) + '%';
+    document.getElementById('bar-' + prefix + '-r').style.width = ((1 - pct) * 100).toFixed(1) + '%';
+  }
+  function pagMin(fn) {
+    return all.filter(fn).reduce((a, r) => a + (r.pagato ? recMin(r) : (r.ore_pagate || 0)), 0);
+  }
+  setBar('oggi', sum(r => r.data === t),          pagMin(r => r.data === t));
+  setBar('sett', sum(r => { const d = new Date(r.data+'T12:00:00').getTime(); return d>=monTs&&d<sunTs; }),
+                 pagMin(r => { const d = new Date(r.data+'T12:00:00').getTime(); return d>=monTs&&d<sunTs; }));
+  setBar('mese', sum(r => r.data.startsWith(ym)), pagMin(r => r.data.startsWith(ym)));
 
   ['B','N'].forEach(k => {
     const pag    = all.filter(r =>  r.pagato && r.uscita_ts && r.sito === k);
