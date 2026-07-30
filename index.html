@@ -719,21 +719,29 @@ nav button.active {
 <div id="v-set" class="view">
   <div style="margin-top:24px;">
     <div class="fg">
-      <label>Metodo di pagamento</label>
+      <label>Tipo di pagamento</label>
       <div class="radio2">
-        <input type="radio" name="metodo" id="m-opt1" value="1">
-        <label for="m-opt1">A ore</label>
-        <input type="radio" name="metodo" id="m-opt2" value="2">
-        <label for="m-opt2">A giornata</label>
-        <input type="radio" name="metodo" id="m-opt3" value="3">
-        <label for="m-opt3">Giornaliero</label>
+        <input type="radio" name="tipo" id="t-ore" value="ore">
+        <label for="t-ore">A ore</label>
+        <input type="radio" name="tipo" id="t-gg" value="giornata">
+        <label for="t-gg">A giornata</label>
       </div>
     </div>
 
-    <div id="cfg-m2" style="display:none">
-      <div class="fg"><label>€ per giornata (fino alla soglia)</label><input type="number" id="cfg-paga" step="0.01" min="0"></div>
-      <div class="fg"><label>Ore soglia</label><input type="number" id="cfg-soglia" step="0.5" min="1"></div>
-      <div class="fg"><label>€ per ora extra (oltre la soglia)</label><input type="number" id="cfg-extra" step="0.01" min="0"></div>
+    <div id="cfg-ore" style="display:none">
+      <div class="fg"><label>€ per ora</label><input type="number" id="cfg-paga-ora" step="0.01" min="0"></div>
+      <div class="check-row" style="margin-top:16px">
+        <input type="checkbox" id="cfg-extra-chk">
+        <label for="cfg-extra-chk">Straordinari</label>
+      </div>
+      <div id="cfg-extra-fields" style="display:none">
+        <div class="fg" style="margin-top:12px"><label>Ore soglia</label><input type="number" id="cfg-soglia" step="0.5" min="1"></div>
+        <div class="fg"><label>€ per ora extra (oltre la soglia)</label><input type="number" id="cfg-paga-extra" step="0.01" min="0"></div>
+      </div>
+    </div>
+
+    <div id="cfg-giornata" style="display:none">
+      <div class="fg"><label>€ per giornata</label><input type="number" id="cfg-paga-gg" step="0.01" min="0"></div>
     </div>
 
     <button class="btn-cta" id="btn-salva-cfg">Salva impostazioni</button>
@@ -928,26 +936,39 @@ document.getElementById('btn-diary').addEventListener('click', () => {
 });
 
 /* ── IMPOSTAZIONI ─────────────────────────────────── */
+function showCfgSections(tipo) {
+  document.getElementById('cfg-ore').style.display      = tipo === 'ore' ? '' : 'none';
+  document.getElementById('cfg-giornata').style.display = tipo === 'giornata' ? '' : 'none';
+}
+function showExtraFields(show) {
+  document.getElementById('cfg-extra-fields').style.display = show ? '' : 'none';
+}
 function initCfgForm() {
   const cfg = getSettings();
-  document.querySelector('input[name="metodo"][value="' + cfg.metodo + '"]').checked = true;
-  document.getElementById('cfg-paga').value   = cfg.paga_giornata;
-  document.getElementById('cfg-soglia').value = cfg.ore_soglia;
-  document.getElementById('cfg-extra').value  = cfg.paga_ora_extra;
-  document.getElementById('cfg-m2').style.display = cfg.metodo >= 2 ? '' : 'none';
+  document.querySelector('input[name="tipo"][value="' + cfg.tipo + '"]').checked = true;
+  document.getElementById('cfg-paga-ora').value  = cfg.paga_ora;
+  document.getElementById('cfg-extra-chk').checked = cfg.extra;
+  document.getElementById('cfg-soglia').value    = cfg.ore_soglia;
+  document.getElementById('cfg-paga-extra').value = cfg.paga_ora_extra;
+  document.getElementById('cfg-paga-gg').value   = cfg.paga_giornata;
+  showCfgSections(cfg.tipo);
+  showExtraFields(cfg.extra);
 }
-document.querySelectorAll('input[name="metodo"]').forEach(r => {
-  r.addEventListener('change', () => {
-    document.getElementById('cfg-m2').style.display = parseInt(r.value) >= 2 ? '' : 'none';
-  });
+document.querySelectorAll('input[name="tipo"]').forEach(r => {
+  r.addEventListener('change', () => showCfgSections(r.value));
+});
+document.getElementById('cfg-extra-chk').addEventListener('change', function() {
+  showExtraFields(this.checked);
 });
 document.getElementById('btn-salva-cfg').addEventListener('click', () => {
-  const metodo = parseInt(document.querySelector('input[name="metodo"]:checked').value);
+  const tipo = document.querySelector('input[name="tipo"]:checked').value;
   saveSettings({
-    metodo,
-    paga_giornata:  parseFloat(document.getElementById('cfg-paga').value)   || 60,
-    ore_soglia:     parseFloat(document.getElementById('cfg-soglia').value) || 8,
-    paga_ora_extra: parseFloat(document.getElementById('cfg-extra').value)  || 10,
+    tipo,
+    paga_ora:       parseFloat(document.getElementById('cfg-paga-ora').value)   || 10,
+    extra:          document.getElementById('cfg-extra-chk').checked,
+    ore_soglia:     parseFloat(document.getElementById('cfg-soglia').value)     || 8,
+    paga_ora_extra: parseFloat(document.getElementById('cfg-paga-extra').value) || 15,
+    paga_giornata:  parseFloat(document.getElementById('cfg-paga-gg').value)    || 60,
   });
   refreshStats();
   refreshCal();
@@ -1007,15 +1028,24 @@ btnMain.addEventListener('click', () => {
 /* ── Settings ──────────────────────────────────── */
 const CFG_KEY = 'pr_cfg';
 function getSettings() {
-  return Object.assign({ metodo: 1, paga_giornata: 60, ore_soglia: 8, paga_ora_extra: 10 },
-    JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
+  const d = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  // migrazione vecchio formato (metodo 1/2/3)
+  if (d.metodo !== undefined && d.tipo === undefined) {
+    d.tipo = d.metodo === 1 ? 'ore' : 'giornata';
+    d.paga_ora = 10;
+    d.extra = false;
+    delete d.metodo;
+  }
+  return Object.assign({ tipo: 'ore', paga_ora: 10, extra: false, ore_soglia: 8, paga_ora_extra: 15, paga_giornata: 60 }, d);
 }
 function saveSettings(cfg) { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 
-function calcolaImportoGiornata(min, cfg) {
+function calcolaImporto(min, cfg) {
   cfg = cfg || getSettings();
-  const sogl = cfg.ore_soglia * 60;
-  return min <= sogl ? cfg.paga_giornata : cfg.paga_giornata + ((min - sogl) / 60) * cfg.paga_ora_extra;
+  if (cfg.tipo === 'giornata') return cfg.paga_giornata;
+  const ore = min / 60;
+  if (!cfg.extra || min <= cfg.ore_soglia * 60) return ore * cfg.paga_ora;
+  return cfg.ore_soglia * cfg.paga_ora + ((min - cfg.ore_soglia * 60) / 60) * cfg.paga_ora_extra;
 }
 function setBar(barId, pct) {
   document.getElementById(barId).style.width = (pct * 100).toFixed(1) + '%';
@@ -1032,11 +1062,12 @@ function refreshStats() {
   const sunTs = monTs + 7 * 86400000;
   const inSett = r => { const d = new Date(r.data + 'T12:00:00').getTime(); return d >= monTs && d < sunTs; };
 
-  if (cfg.metodo === 1) {
+  if (cfg.tipo === 'ore') {
+    const conUscita = r => r.uscita_ts > 0;
     const sumMin = fn => all.filter(fn).reduce((a, r) => a + recMin(r), 0);
-    document.getElementById('s-oggi').textContent = fmtH(sumMin(r => r.data === t));
-    document.getElementById('s-sett').textContent = fmtH(sumMin(inSett));
-    document.getElementById('s-mese').textContent = fmtH(sumMin(r => r.data.startsWith(ym)));
+    document.getElementById('s-oggi').textContent = fmtH(sumMin(r => r.data === t && conUscita(r)));
+    document.getElementById('s-sett').textContent = fmtH(sumMin(r => inSett(r) && conUscita(r)));
+    document.getElementById('s-mese').textContent = fmtH(sumMin(r => r.data.startsWith(ym) && conUscita(r)));
     const pag  = all.filter(r =>  r.pagato && r.uscita_ts);
     const npag = all.filter(r => !r.pagato && r.uscita_ts);
     const pagM = pag.reduce((a, r) => a + recMin(r), 0);
@@ -1051,28 +1082,8 @@ function refreshStats() {
     document.getElementById('box2-sub').textContent = '';
     setBar('box1-bar', pct);
     setBar('box2-bar', 1 - pct);
-  } else if (cfg.metodo === 2) {
-    const compHas = r => r.uscita_ts > 0;
-    const fmtGg = n => n > 0 ? n + ' gg' : '—';
-    document.getElementById('s-oggi').textContent = fmtGg(all.filter(r => r.data === t && compHas(r)).length);
-    document.getElementById('s-sett').textContent = fmtGg(all.filter(r => inSett(r) && compHas(r)).length);
-    document.getElementById('s-mese').textContent = fmtGg(all.filter(r => r.data.startsWith(ym) && compHas(r)).length);
-    const pag  = all.filter(r =>  r.pagato && r.uscita_ts);
-    const npag = all.filter(r => !r.pagato && r.uscita_ts);
-    const pagE = pag.reduce((a, r) => a + (r.importo || 0), 0);
-    const npE  = npag.reduce((a, r) => a + calcolaImportoGiornata(recMin(r)), 0);
-    const tot  = pag.length + npag.length;
-    const pct  = tot > 0 ? pag.length / tot : 0;
-    document.getElementById('box1-lbl').textContent = 'Giornate pagate';
-    document.getElementById('box1-val').textContent = pag.length > 0 ? pag.length + ' gg' : '—';
-    document.getElementById('box1-sub').textContent = pagE > 0 ? '€ ' + pagE.toFixed(2) : '—';
-    document.getElementById('box2-lbl').textContent = 'Da pagare';
-    document.getElementById('box2-val').textContent = npag.length > 0 ? npag.length + ' gg' : '—';
-    document.getElementById('box2-sub').textContent = npE > 0 ? '~ € ' + npE.toFixed(2) : '';
-    setBar('box1-bar', pct);
-    setBar('box2-bar', 1 - pct);
   } else {
-    // metodo 3 — giornaliero: basta l'entrata, straordinari se uscita presente
+    // a giornata — basta l'entrata
     const fmtGg = n => n > 0 ? n + ' gg' : '—';
     document.getElementById('s-oggi').textContent = fmtGg(all.filter(r => r.data === t).length);
     document.getElementById('s-sett').textContent = fmtGg(all.filter(r => inSett(r)).length);
@@ -1080,7 +1091,7 @@ function refreshStats() {
     const pag  = all.filter(r =>  r.pagato);
     const npag = all.filter(r => !r.pagato);
     const pagE = pag.reduce((a, r) => a + (r.importo || 0), 0);
-    const npE  = npag.reduce((a, r) => a + calcolaImportoGiornata(recMin(r)), 0);
+    const npE  = npag.reduce((a, r) => a + calcolaImporto(recMin(r)), 0);
     const tot  = pag.length + npag.length;
     const pct  = tot > 0 ? pag.length / tot : 0;
     document.getElementById('box1-lbl').textContent = 'Giornate pagate';
@@ -1097,15 +1108,13 @@ function refreshStats() {
   const anno = t.slice(0, 4);
   const inAnno = r => r.data.startsWith(anno);
   document.getElementById('s-anno-lbl').textContent = 'Anno ' + anno;
-  if (cfg.metodo === 1) {
-    const minA = all.filter(inAnno).reduce((a, r) => a + recMin(r), 0);
+  if (cfg.tipo === 'ore') {
+    const minA = all.filter(r => inAnno(r) && r.uscita_ts).reduce((a, r) => a + recMin(r), 0);
     const eurA = all.filter(r => inAnno(r) && r.pagato).reduce((a, r) => a + (r.importo || 0), 0);
     document.getElementById('s-anno-val').textContent = minA > 0 ? fmtH(minA) : '—';
     document.getElementById('s-anno-eur').textContent = eurA > 0 ? '€ ' + eurA.toFixed(2) : '';
   } else {
-    const ggA = cfg.metodo === 2
-      ? all.filter(r => inAnno(r) && r.uscita_ts).length
-      : all.filter(inAnno).length;
+    const ggA = all.filter(inAnno).length;
     const eurA = all.filter(r => inAnno(r) && r.pagato).reduce((a, r) => a + (r.importo || 0), 0);
     document.getElementById('s-anno-val').textContent = ggA > 0 ? ggA + ' gg' : '—';
     document.getElementById('s-anno-eur').textContent = eurA > 0 ? '€ ' + eurA.toFixed(2) : '';
@@ -1266,30 +1275,26 @@ function delRec(id) {
 function buildPagaBody() {
   const cfg  = getSettings();
   const all  = getRecs();
-  const npag = all.filter(r => !r.pagato && r.uscita_ts).sort((a, b) => a.entrata_ts - b.entrata_ts);
   const el   = document.getElementById('paga-body');
 
-  if (cfg.metodo === 1) {
+  if (cfg.tipo === 'ore') {
     const npM = all.filter(r => !r.pagato && r.uscita_ts).reduce((a, r) => a + recMin(r) - (r.ore_pagate || 0), 0);
     const ref = npM > 0 ? '<p style="font-size:13px;color:var(--soft);margin:0 0 16px">Non pagate: <strong style="color:var(--text)">' + fmtH(npM) + '</strong></p>' : '';
     el.innerHTML = ref +
       '<div class="fg"><label>Ore pagate</label><input type="number" id="p-ore" min="0" step="0.5"></div>' +
       '<div class="fg"><label>Importo € (opz.)</label><input type="number" id="p-imp" min="0" step="0.01"></div>';
   } else {
-    // metodo 2: solo giornate completate; metodo 3: tutte le presenze
-    const lista = cfg.metodo === 3
-      ? all.filter(r => !r.pagato).sort((a, b) => a.entrata_ts - b.entrata_ts)
-      : npag;
+    const lista = all.filter(r => !r.pagato).sort((a, b) => a.entrata_ts - b.entrata_ts);
     let html = '<p style="font-size:13px;color:var(--soft);margin:0 0 12px">Seleziona le giornate da pagare (vuoto = tutte dal più vecchio)</p>';
     if (!lista.length) {
       html = '<p style="color:var(--soft);font-size:13px">Nessuna giornata da pagare.</p>';
     } else {
       lista.forEach(r => {
         const min = recMin(r);
-        const imp = calcolaImportoGiornata(min);
+        const imp = calcolaImporto(min);
         const oreTxt = r.uscita ? r.entrata + '–' + r.uscita + ' · ' + fmtH(min) : (r.entrata || '') + ' · presenza';
         html += '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">' +
-          '<input type="checkbox" class="paga-chk" data-id="' + r.id + '" data-imp="' + imp.toFixed(2) + '">' +
+          '<input type="checkbox" class="paga-chk" data-id="' + r.id + '">' +
           '<span style="flex:1"><span style="font-weight:600">' + fmtDataIt(r.data) + '</span>' +
           ' &nbsp; <span style="color:var(--soft)">' + oreTxt + '</span></span>' +
           '<span style="color:var(--soft);font-size:13px">€ ' + imp.toFixed(2) + '</span>' +
@@ -1309,7 +1314,7 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
   const cfg = getSettings();
   const all = getRecs();
 
-  if (cfg.metodo === 1) {
+  if (cfg.tipo === 'ore') {
     const oreIn   = parseFloat(document.getElementById('p-ore').value) || 0;
     const importo = parseFloat(document.getElementById('p-imp').value) || 0;
     if (!oreIn) { showToast('Inserisci le ore pagate', 'err'); return; }
@@ -1327,24 +1332,18 @@ document.getElementById('btn-salva-paga').addEventListener('click', () => {
       }
     }
   } else {
-    // Metodo 2 e 3: giornate con checkbox
     const chks = [...document.querySelectorAll('.paga-chk:checked')];
     if (chks.length) {
       const ids = new Set(chks.map(c => c.dataset.id));
       for (const r of all.filter(r => ids.has(r.id))) {
         r.pagato  = true;
-        r.importo = calcolaImportoGiornata(recMin(r));
+        r.importo = calcolaImporto(recMin(r));
       }
     } else {
-      const nonPagate = cfg.metodo === 3
-        ? all.filter(r => !r.pagato).sort((a, b) => a.entrata_ts - b.entrata_ts)
-        : all.filter(r => !r.pagato && r.uscita_ts).sort((a, b) => a.entrata_ts - b.entrata_ts);
+      const nonPagate = all.filter(r => !r.pagato).sort((a, b) => a.entrata_ts - b.entrata_ts);
       if (!nonPagate.length) { closeModal('ov-paga'); return; }
       showConfirm('Segna come pagate tutte le ' + nonPagate.length + ' giornate non pagate?', () => {
-        for (const r of nonPagate) {
-          r.pagato  = true;
-          r.importo = calcolaImportoGiornata(recMin(r));
-        }
+        for (const r of nonPagate) { r.pagato = true; r.importo = calcolaImporto(recMin(r)); }
         saveRecs(all);
         closeModal('ov-paga');
         refreshStats();
