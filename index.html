@@ -730,6 +730,7 @@ nav button.active {
 
     <div id="cfg-ore" style="display:none">
       <div class="fg"><label>€ per ora</label><input type="number" id="cfg-paga-ora" step="0.01" min="0"></div>
+      <div class="fg"><label>Ore al giorno</label><input type="number" id="cfg-ore-giorno" step="1" min="1" max="24"></div>
       <div class="check-row" style="margin-top:16px">
         <input type="checkbox" id="cfg-extra-chk">
         <label for="cfg-extra-chk">Straordinari</label>
@@ -947,6 +948,7 @@ function initCfgForm() {
   const cfg = getSettings();
   document.querySelector('input[name="tipo"][value="' + cfg.tipo + '"]').checked = true;
   document.getElementById('cfg-paga-ora').value  = cfg.paga_ora;
+  document.getElementById('cfg-ore-giorno').value = cfg.ore_giorno;
   document.getElementById('cfg-extra-chk').checked = cfg.extra;
   document.getElementById('cfg-soglia').value    = cfg.ore_soglia;
   document.getElementById('cfg-paga-extra').value = cfg.paga_ora_extra;
@@ -965,6 +967,7 @@ document.getElementById('btn-salva-cfg').addEventListener('click', () => {
   saveSettings({
     tipo,
     paga_ora:       parseFloat(document.getElementById('cfg-paga-ora').value)   || 10,
+    ore_giorno:     parseInt(document.getElementById('cfg-ore-giorno').value)   || 8,
     extra:          document.getElementById('cfg-extra-chk').checked,
     ore_soglia:     parseFloat(document.getElementById('cfg-soglia').value)     || 8,
     paga_ora_extra: parseFloat(document.getElementById('cfg-paga-extra').value) || 15,
@@ -1036,7 +1039,7 @@ function getSettings() {
     d.extra = false;
     delete d.metodo;
   }
-  return Object.assign({ tipo: 'ore', paga_ora: 10, extra: false, ore_soglia: 8, paga_ora_extra: 15, paga_giornata: 60 }, d);
+  return Object.assign({ tipo: 'ore', paga_ora: 10, extra: false, ore_soglia: 8, paga_ora_extra: 15, paga_giornata: 60, ore_giorno: 8 }, d);
 }
 function saveSettings(cfg) { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 
@@ -1477,17 +1480,48 @@ document.getElementById('btn-export').addEventListener('click', exportAll);
 /* ── Aggiungi timbratura manuale ────────────────── */
 function addTimbratura(ds) {
   const body = document.getElementById('day-body');
-  // sostituisce il bottone + con il form inline
   const form = body.querySelector('.timb-form');
-  if (form) return; // già aperto
+  if (form) return;
+  const cfg = getSettings();
   const div = document.createElement('div');
   div.className = 'timb-form';
-  div.innerHTML =
-    '<div class="fg"><label>Entrata</label><input type="time" id="tf-in"></div>'
-  + '<div class="fg"><label>Uscita</label><input type="time" id="tf-out"></div>'
-  + '<button class="btn-cta" onclick="confirmTimbratura(\'' + ds + '\')">Conferma</button>'
-  + '<button class="btn-del" onclick="renderDayBody(\'' + ds + '\')">Annulla</button>';
+  const rapido = cfg.tipo === 'ore'
+    ? '<div class="radio2" style="margin-bottom:12px">'
+    +   '<input type="radio" name="tf-modo" id="tf-m-man" checked>'
+    +   '<label for="tf-m-man" onclick="document.getElementById(\'add-p-man\').style.display=\'\';document.getElementById(\'add-p-rap\').style.display=\'none\'">Manuale</label>'
+    +   '<input type="radio" name="tf-modo" id="tf-m-rap">'
+    +   '<label for="tf-m-rap" onclick="document.getElementById(\'add-p-man\').style.display=\'none\';document.getElementById(\'add-p-rap\').style.display=\'\'">Rapido</label>'
+    + '</div>'
+    + '<div id="add-p-rap" style="display:none">'
+    +   '<div class="fg"><label>Ora inizio</label><input type="time" id="tf-inizio-r" value="08:00"></div>'
+    +   '<button class="btn-cta" onclick="confirmRapido(\'' + ds + '\',1)">Giornata intera</button>'
+    +   '<button class="btn-cta" style="margin-top:8px" onclick="confirmRapido(\'' + ds + '\',0.5)">Mezzagiornata</button>'
+    + '</div>'
+    + '<div id="add-p-man">'
+    : '';
+  const conferma = cfg.tipo === 'ore'
+    ? '<button class="btn-cta" onclick="confirmTimbratura(\'' + ds + '\')">Conferma</button></div>'
+    : '<button class="btn-cta" onclick="confirmTimbratura(\'' + ds + '\')">Conferma</button>';
+  div.innerHTML = rapido
+    + '<div class="fg"><label>Entrata</label><input type="time" id="tf-in"></div>'
+    + '<div class="fg"><label>Uscita</label><input type="time" id="tf-out"></div>'
+    + conferma
+    + '<button class="btn-del" onclick="renderDayBody(\'' + ds + '\')">Annulla</button>';
   body.querySelector('.btn-add').replaceWith(div);
+}
+
+function confirmRapido(ds, mult) {
+  const cfg = getSettings();
+  const entrata = document.getElementById('tf-inizio-r').value || '08:00';
+  const [h, m] = entrata.split(':').map(Number);
+  const tot = h * 60 + m + Math.round(cfg.ore_giorno * mult * 60);
+  const uscita = String(Math.floor(tot / 60) % 24).padStart(2,'0') + ':' + String(tot % 60).padStart(2,'0');
+  const all = getRecs();
+  all.push({ id: uid(), data: ds, entrata, uscita, entrata_ts: hmToTs(ds, entrata), uscita_ts: hmToTs(ds, uscita), sito:'', nota:'', pagato:false, importo:0 });
+  saveRecs(all);
+  renderDayBody(ds);
+  refreshStats();
+  refreshCal();
 }
 
 function confirmTimbratura(ds) {
